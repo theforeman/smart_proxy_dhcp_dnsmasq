@@ -17,53 +17,25 @@ module Proxy::Dns::PluginTemplate
       super('localhost', dns_ttl)
     end
 
-    # Calls to these methods are guaranteed to have non-nil parameters
-    def create_a_record(fqdn, ip)
-      case a_record_conflicts(fqdn, ip) #returns -1, 0, 1
-        when 1
-          raise(Proxy::Dns::Collision, "'#{fqdn} 'is already in use")
-        when 0 then
-          return nil
-        else
-          # FIXME: add a forward 'A' record with fqdn, ip
+    def do_create(name, value, type)
+      # FIXME: There is no trailing dot. Your backend might require it.
+      if false
+        name += '.'
+        value += '.' if ['PTR', 'CNAME'].include?(type)
       end
+
+      # FIXME: Create a record with the correct name, value and type
+      raise Proxy::Dns::Error.new("Failed to point #{name} to #{value} with type #{type}")
     end
 
-    def create_aaaa_record(fqdn, ip)
-      case aaaa_record_conflicts(fqdn, ip) #returns -1, 0, 1
-        when 1
-          raise(Proxy::Dns::Collision, "'#{fqdn} 'is already in use")
-        when 0 then
-          return nil
-        else
-          # FIXME: add a forward 'AAAA' record with fqdn, ip
+    def do_remove(name, type)
+      # FIXME: There is no trailing dot. Your backend might require it.
+      if false
+        name += '.'
       end
-    end
 
-    def create_ptr_record(fqdn, ptr)
-      case ptr_record_conflicts(fqdn, ptr_to_ip(ptr)) #returns -1, 0, 1
-        when 1
-          raise(Proxy::Dns::Collision, "'#{fqdn} 'is already in use")
-        when 0 then
-          return nil
-        else
-          # FIXME: add a reverse 'PTR' record with ip, fqdn
-      end
-    end
-
-    def remove_a_record(fqdn)
-      raise Proxy::Dns::NotFound.new("Cannot find DNS entry for #{fqdn}") unless dns_find(fqdn)
-      # FIXME: remove the forward 'A' record with fqdn
-    end
-
-    def remove_aaaa_record(fqdn)
-      raise Proxy::Dns::NotFound.new("Cannot find DNS entry for #{fqdn}") unless dns_find(fqdn)
-      # FIXME: remove the forward 'AAAA' record with fqdn
-    end
-
-    def remove_ptr_record(ip)
-      raise Proxy::Dns::NotFound.new("Cannot find DNS entry for #{ip}") unless dns_find(ip)
-      # FIXME: remove the reverse 'PTR' record with ip
+      # FIXME: Remove a record with the correct name and type
+      raise Proxy::Dns::Error.new("Failed to remove #{name} of type #{type}")
     end
   end
 end

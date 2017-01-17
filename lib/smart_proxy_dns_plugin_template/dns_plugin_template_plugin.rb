@@ -9,7 +9,7 @@ module Proxy::Dns::PluginTemplate
     # Settings not listed under default_settings are considered optional and by default have nil value.
     default_settings :required_setting => 'default_value', :required_path => '/must/exist'
 
-    requires :dns, '>= 1.13'
+    requires :dns, '>= 1.15'
 
     # Verifies that a file exists and is readable.
     # Uninitialized optional settings will not trigger validation errors.
