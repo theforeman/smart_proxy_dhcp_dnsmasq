@@ -1,6 +1,6 @@
 ---
 #
-# Configuration file for 'dns_plugin_template' dns provider
+# Configuration file for 'dns_dnsmasq' dns provider
 #
 
 # override :required_setting here, by default it is set to 'default_value'

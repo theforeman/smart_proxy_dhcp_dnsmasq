@@ -1,8 +1,8 @@
-require 'smart_proxy_dns_plugin_template/dns_plugin_template_version'
+require 'smart_proxy_dns_dnsmasq/dns_dnsmasq_version'
 
-module Proxy::Dns::PluginTemplate
+module Proxy::Dns::Dnsmasq
   class Plugin < ::Proxy::Provider
-    plugin :dns_plugin_template, ::Proxy::Dns::PluginTemplate::VERSION
+    plugin :dns_dnsmasq, ::Proxy::Dns::Dnsmasq::VERSION
 
     # Settings listed under default_settings are required.
     # An exception will be raised if they are initialized with nil values.
@@ -16,8 +16,8 @@ module Proxy::Dns::PluginTemplate
     validate_readable :required_path, :optional_path
 
     # Loads plugin files and dependencies
-    load_classes ::Proxy::Dns::PluginTemplate::PluginConfiguration
+    load_classes ::Proxy::Dns::Dnsmasq::PluginConfiguration
     # Loads plugin dependency injection wirings
-    load_dependency_injection_wirings ::Proxy::Dns::PluginTemplate::PluginConfiguration
+    load_dependency_injection_wirings ::Proxy::Dns::Dnsmasq::PluginConfiguration
   end
 end

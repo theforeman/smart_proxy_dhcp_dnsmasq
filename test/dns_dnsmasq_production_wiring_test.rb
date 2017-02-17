@@ -1,11 +1,11 @@
 require 'test_helper'
-require 'smart_proxy_dns_plugin_template/dns_plugin_template_configuration'
-require 'smart_proxy_dns_plugin_template/dns_plugin_template_main'
+require 'smart_proxy_dns_dnsmasq/dns_dnsmasq_configuration'
+require 'smart_proxy_dns_dnsmasq/dns_dnsmasq_main'
 
-class DnsPluginTemplateProductionWiringTest < Test::Unit::TestCase
+class DnsDnsmasqProductionWiringTest < Test::Unit::TestCase
   def setup
     @container = ::Proxy::DependencyInjection::Container.new
-    @config = ::Proxy::Dns::PluginTemplate::PluginConfiguration.new
+    @config = ::Proxy::Dns::Dnsmasq::PluginConfiguration.new
   end
 
   def test_dns_provider_initialization

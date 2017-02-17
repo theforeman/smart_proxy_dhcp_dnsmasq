@@ -1,6 +1,6 @@
 module Proxy
   module Dns
-    module PluginTemplate
+    module Dnsmasq
       VERSION = '0.1'
     end
   end
