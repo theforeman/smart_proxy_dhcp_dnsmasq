@@ -18,7 +18,10 @@ To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dns.yml` and se
 
 Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dns_dnsmasq.yml` and include:
 
-* example_setting: change this as an example
+* `backend`: The backend to use, currently implemented ones are; `openwrt`, and `default`
+* `config_path`: The path to the configuration file.
+* `reload_cmd`: The command to use for reloading the dnsmasq configuration.
+* `dns_ttl`: The TTL values for the DNS data. (*currently unused*)
 
 ## Contributing
 
@@ -26,7 +29,7 @@ Fork and send a Pull Request. Thanks!
 
 ## Copyright
 
-Copyright (c) *year* *your name*
+Copyright (c) 2017 Alexander Olofsson
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
