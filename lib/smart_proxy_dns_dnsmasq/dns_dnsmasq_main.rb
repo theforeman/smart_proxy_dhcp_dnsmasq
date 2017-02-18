@@ -20,6 +20,8 @@ module Proxy::Dns::Dnsmasq
         add_host(value, name)
       when 'CNAME'
         add_cname(name, value)
+      else
+        raise Proxy::Dns::Error, "Can't create entries of type #{type}"
       end
     end
 
@@ -34,6 +36,8 @@ module Proxy::Dns::Dnsmasq
         add_host(value, ip)
       when 'CNAME'
         add_cname(name, value)
+      else
+        raise Proxy::Dns::Error, "Can't remove entries of type #{type}"
       end
     end
   end

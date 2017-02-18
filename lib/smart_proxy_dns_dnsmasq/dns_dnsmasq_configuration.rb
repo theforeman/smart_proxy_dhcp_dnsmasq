@@ -15,22 +15,18 @@ module ::Proxy::Dns::Dnsmasq
 
       require "smart_proxy_dns_dnsmasq/backend/#{backend}"
 
-      case backend
+      klass = case backend
       when 'openwrt'
-        container_instance.dependency :dns_provider, (lambda do
-          ::Proxy::Dns::Dnsmasq::Backend::Openwrt.new(
-              settings[:config_path],
-              settings[:dnsmasq_name],
-              settings[:dns_ttl]
-        end)
+        ::Proxy::Dns::Dnsmasq::Backend::Openwrt
       when 'default'
-        container_instance.dependency :dns_provider, (lambda do
-          ::Proxy::Dns::Dnsmasq::Backend::Default.new(
-              settings[:config_path],
-              settings[:dnsmasq_name],
-              settings[:dns_ttl]
-        end)
+        ::Proxy::Dns::Dnsmasq::Backend::Default
       end
+      container_instance.dependency :dns_provider, (lambda do
+        klass.new(
+            settings[:config_path],
+            settings[:reload_cmd],
+            settings[:dns_ttl]
+      end)
     end
   end
 end

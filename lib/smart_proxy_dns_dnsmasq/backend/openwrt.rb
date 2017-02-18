@@ -1,8 +1,8 @@
 module Proxy::Dns::Dnsmasq::Backend
   class Openwrt < ::Proxy::Dns::Dnsmasq::Record
-    def initialize(config, process_name, dns_ttl)
+    def initialize(config, reload_cmd, dns_ttl)
       @config_file = config
-      @process_name = process_name
+      @reload_cmd = reload_cmd
       @dirty = false
 
       super(dns_ttl)
@@ -13,7 +13,7 @@ module Proxy::Dns::Dnsmasq::Backend
       @dirty = false
 
       File.write(@config_file, @configuration.join '\n')
-      system("killall -s SIGHUP #{process_name}")
+      system(@reload_cmd)
     end
 
     def add_cname(name, canonical)
@@ -68,10 +68,9 @@ module Proxy::Dns::Dnsmasq::Backend
       end
     end
 
-    def load
+    def load!
       dsl = DSL.new(@configuration)
       dsl.instance_eval open(@config_file).read, @config_file
-      true
     end
 
     def configuration
