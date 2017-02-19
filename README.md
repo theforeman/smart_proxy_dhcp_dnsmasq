@@ -18,10 +18,14 @@ To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dns.yml` and se
 
 Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dns_dnsmasq.yml` and include:
 
-* `backend`: The backend to use, currently implemented ones are; `openwrt`, and `default`
+* `backend` (*optional*): The backend to use, currently implemented ones are; `openwrt`, and `default`
 * `config_path`: The path to the configuration file.
 * `reload_cmd`: The command to use for reloading the dnsmasq configuration.
 * `dns_ttl`: The TTL values for the DNS data. (*currently unused*)
+
+For best results, `config_path` should point to a file in a dnsmasq `conf-dir` which only the smart-proxy accesses.
+
+**NB**: The `openwrt` backend uses the UCI configuration files, which for the moment don't support IPv6 entries.
 
 ## Contributing
 
