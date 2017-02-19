@@ -1,7 +1,7 @@
 module Proxy
-  module Dns
+  module DHCP
     module Dnsmasq
-      VERSION = '0.4'
+      VERSION = '0.1'
     end
   end
 end

@@ -1,9 +1,0 @@
----
-#
-# Configuration file for 'dns_dnsmasq' dns provider
-#
-
-#
-#:backend: default
-:config_path: /etc/dnsmasq.d/foreman.conf
-:reload_cmd: systemctl reload dnsmasq

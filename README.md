@@ -1,7 +1,7 @@
-# Dnsmasq Smart Proxy plugin
+# Dnsmasq DHCP Smart Proxy plugin
 
 
-This plugin adds a new DNS provider for managing records in dnsmasq.
+This plugin adds a new DHCP provider for managing records in dnsmasq.
 
 ## Installation
 
@@ -12,16 +12,16 @@ This plugin is compatible with Smart Proxy 1.15 or higher.
 
 ## Configuration
 
-To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dns.yml` and set:
+To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dhcp.yml` and set:
 
-    :use_provider: dns_dnsmasq
+    :use_provider: dhcp_dnsmasq
 
 Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dns_dnsmasq.yml` and include:
 
 * `backend` (*optional*): The backend to use, currently implemented ones are; `openwrt`, and `default`
-* `config_path`: The path to the configuration file.
+* `lease_file`: The path to the lease file.
+* `config_file`: The path to the configuration file.
 * `reload_cmd`: The command to use for reloading the dnsmasq configuration.
-* `dns_ttl`: The TTL values for the DNS data. (*currently unused*)
 
 For best results, `config_path` should point to a file in a dnsmasq `conf-dir` which only the smart-proxy accesses.
 

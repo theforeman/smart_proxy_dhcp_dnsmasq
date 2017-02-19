@@ -1,0 +1,14 @@
+---
+#
+# Configuration file for 'dhcp_dnsmasq' dhcp provider
+#
+
+# Configuration files to parse, writing any additional entries will be done to
+# the last of the files unless a specific write file is provided;
+#
+#:write_config_file: /etc/dnsmasq.d/hosts.conf
+:config_files:
+  - /etc/dnsmasq.conf
+  - /etc/dnsmasq.d/foreman.conf
+:lease_file: /var/lib/dnsmasq/dhcp.leases
+:reload_cmd: systemctl reload dnsmasq
