@@ -44,7 +44,7 @@ module Proxy::Dns::Dnsmasq
 
     def add_cname(name, canonical)
       found = find_type(:cname, :name, name)
-      return true if c && c.options[:target] == canonical
+      return true if found && found.options[:target] == canonical
 
       c = found
       c = DSL::Config.new :cname unless c
