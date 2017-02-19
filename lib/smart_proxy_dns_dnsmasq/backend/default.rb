@@ -14,7 +14,7 @@ module Proxy::Dns::Dnsmasq
       return unless @dirty
       @dirty = false
 
-      File.write(@config_file, @configuration.join('\n'))
+      File.write(@config_file, configuration.join("\n") + "\n")
       system(@reload_cmd)
     end
 
@@ -47,7 +47,8 @@ module Proxy::Dns::Dnsmasq
     end
 
     def add_cname(name, canonical)
-      # Don't fill the configuration if broken CNAME entries are added
+      # dnsmasq will silently ignore broken CNAME records, even though they stay in config
+      # So avoid flooding the configuration if broken CNAME entries are added
       return true if configuration.find { |entry| entry.is_a?(CNAMEEntry) && entry.name == name }
 
       c = CNAMEEntry.new

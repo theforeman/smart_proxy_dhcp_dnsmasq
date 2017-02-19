@@ -16,18 +16,21 @@ module Proxy::Dns::Dnsmasq
       return unless @dirty
       @dirty = false
 
-      File.write(@config_file, configuration.join('\n'))
+      File.write(@config_file, "\n" + configuration.join("\n") + "\n")
       system(@reload_cmd)
     end
 
     def add_entry(type, fqdn, ip)
       raise Proxy::Dns::Error, "OpenWRT UCI can't manage IPv6 entries" if type == 'AAAA' || type == 'PTR' && IPAddr.new(ip).ipv6?
-      return true if find_type(:domain, :name, fqdn)
+      found = find_type(:domain, :name, fqdn)
+      return true if found && found.options[:ip] == ip
 
-      h = DSL::Config.new :domain
+      h = found
+      h = DSL::Config.new :domain unless h
       h.options[:name] = fqdn
       h.options[:ip] = ip
-      configuration << h
+
+      configuration << h unless found
       @dirty = true
     end
 
@@ -40,12 +43,15 @@ module Proxy::Dns::Dnsmasq
     end
 
     def add_cname(name, canonical)
-      return true if find_type(:cname, :name, name)
+      found = find_type(:cname, :name, name)
+      return true if c && c.options[:target] == canonical
 
-      c = DSL::Config.new :cname
+      c = found
+      c = DSL::Config.new :cname unless c
       c.options[:cname] = name
       c.options[:target] = canonical
-      configuration << c
+
+      configuration << c unless found
       @dirty = true
     end
 
@@ -71,6 +77,7 @@ module Proxy::Dns::Dnsmasq
     end
 
     def load!
+      @configuration = []
       dsl = DSL.new(@configuration)
       dsl.instance_eval open(@config_file).read, @config_file
     end
@@ -97,9 +104,9 @@ module Proxy::Dns::Dnsmasq
                 "        list #{name} '#{val}'"
               end.join "\n"
             else
-              "        config #{name} '#{value}'"
+              "        option #{name} '#{value}'"
             end
-          end.join("\n") + "\n\n"
+          end.join("\n") + "\n"
         end
       end
 
