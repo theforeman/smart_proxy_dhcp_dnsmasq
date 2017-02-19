@@ -5,27 +5,32 @@ module ::Proxy::Dns::Dnsmasq
       require 'smart_proxy_dns_dnsmasq/dns_dnsmasq_main'
     end
 
+    BACKENDS = [ 'openwrt', 'default' ].freeze
     def load_dependency_injection_wirings(container_instance, settings)
-      BACKENDS = [ 'openwrt', 'default' ].freeze
       backend = settings[:backend] || 'default'
 
       unless BACKENDS.include? backend
         raise ::Proxy::Error::ConfigurationError, 'In'
       end
 
-      require "smart_proxy_dns_dnsmasq/backend/#{backend}"
+      begin
+        require "smart_proxy_dns_dnsmasq/backend/#{backend}"
+      rescue LoadError, e
+        raise ::Proxy::Error::ConfigurationError, "Failed to load backend #{backend}: #{e}"
+      end
 
       klass = case backend
       when 'openwrt'
-        ::Proxy::Dns::Dnsmasq::Backend::Openwrt
+        ::Proxy::Dns::Dnsmasq::Openwrt
       when 'default'
-        ::Proxy::Dns::Dnsmasq::Backend::Default
+        ::Proxy::Dns::Dnsmasq::Default
       end
+
       container_instance.dependency :dns_provider, (lambda do
         klass.new(
             settings[:config_path],
             settings[:reload_cmd],
-            settings[:dns_ttl]
+            settings[:dns_ttl])
       end)
     end
   end

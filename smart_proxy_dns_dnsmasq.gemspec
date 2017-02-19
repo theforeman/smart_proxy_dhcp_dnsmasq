@@ -6,12 +6,12 @@ Gem::Specification.new do |s|
   s.version     = Proxy::Dns::Dnsmasq::VERSION
   s.date        = Date.today.to_s
   s.license     = 'GPL-3.0'
-  s.authors     = ['TODO: Your name']
-  s.email       = ['TODO: Your email']
-  s.homepage    = 'https://github.com/theforeman/smart_proxy_dns_dnsmasq'
+  s.authors     = ['Alexander Olofsson']
+  s.email       = ['alexander.olofsson@liu.se']
+  s.homepage    = 'https://github.com/ace13/smart_proxy_dns_dnsmasq'
 
-  s.summary     = "TODO DNS provider plugin for Foreman's smart proxy"
-  s.description = "TODO DNS provider plugin for Foreman's smart proxy"
+  s.summary     = "dnsmasq DNS provider plugin for Foreman's smart proxy"
+  s.description = "dnamasq DNS provider plugin for Foreman's smart proxy"
 
   s.files       = Dir['{config,lib,bundler.d}/**/*'] + ['README.md', 'LICENSE']
   s.test_files  = Dir['test/**/*']

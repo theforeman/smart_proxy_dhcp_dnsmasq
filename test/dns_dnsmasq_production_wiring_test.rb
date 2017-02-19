@@ -8,20 +8,32 @@ class DnsDnsmasqProductionWiringTest < Test::Unit::TestCase
     @config = ::Proxy::Dns::Dnsmasq::PluginConfiguration.new
   end
 
-  def test_dns_provider_initialization
+  def test_dns_provider_initialization_default
     @config.load_dependency_injection_wirings(@container, :dns_ttl => 999,
-                                              :example_setting => 'a_value',
-                                              :required_setting => 'required_value',
-                                              :optional_path => '/some/path',
-                                              :required_path => '/required/path')
+                                              :config_path => '/etc/dnsmasq.conf',
+                                              :reload_cmd => 'systemctl reload dnsmasq')
 
     provider = @container.get_dependency(:dns_provider)
 
     assert_not_nil provider
-    assert_equal 'a_value', provider.example_setting
-    assert_equal 'required_value', provider.required_setting
-    assert_equal '/some/path', provider.optional_path
-    assert_equal '/required/path', provider.required_path
+    assert_equal provider.class, Proxy::Dns::Dnsmasq::Default
+    assert_equal '/etc/dnsmasq.conf', provider.config_file
+    assert_equal 'systemctl reload dnsmasq', provider.reload_cmd
+    assert_equal 999, provider.ttl
+  end
+
+  def test_dns_provider_initialization
+    @config.load_dependency_injection_wirings(@container, :dns_ttl => 999,
+                                              :backend => 'openwrt',
+                                              :config_path => '/etc/config/dhcp',
+                                              :reload_cmd => '/etc/init.d/dnsmasq reload')
+
+    provider = @container.get_dependency(:dns_provider)
+
+    assert_not_nil provider
+    assert_equal provider.class, Proxy::Dns::Dnsmasq::Openwrt
+    assert_equal '/etc/config/dhcp', provider.config_file
+    assert_equal '/etc/init.d/dnsmasq reload', provider.reload_cmd
     assert_equal 999, provider.ttl
   end
 end

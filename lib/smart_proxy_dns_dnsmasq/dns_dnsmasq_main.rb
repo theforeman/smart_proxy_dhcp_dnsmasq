@@ -10,35 +10,33 @@ module Proxy::Dns::Dnsmasq
     end
 
     def do_create(name, value, type)
-      raise Proxy::Dns::Error.new("Failed to point #{name} to #{value} with type #{type}") unless case type
-      when 'A'
-        add_host(name, value)
+      case type
+      when 'A', 'AAAA'
+        add_entry(type, name, value)
       when 'PTR'
-        ip = ptr_to_ip(name)
-        raise Proxy::Dns::Error.new("Can't create IPV6 PTR records.") if IPAddr.new(ip).ipv6?
-
-        add_host(value, name)
+        add_entry(type, value, ptr_to_ip(name))
       when 'CNAME'
         add_cname(name, value)
       else
         raise Proxy::Dns::Error, "Can't create entries of type #{type}"
       end
+
+      update!
     end
 
     def do_remove(name, type)
-      raise Proxy::Dns::Error.new("Failed to remove #{name} of type #{type}") unless case type
-      when 'A'
-        add_host(name, value)
+      case type
+      when 'A', 'AAAA'
+        remove_entry(type, name)
       when 'PTR'
-        ip = ptr_to_ip(name)
-        raise Proxy::Dns::Error.new("Can't remove IPV6 PTR records.") if IPAddr.new(ip).ipv6?
-
-        add_host(value, ip)
+        remove_entry(type, nil, ptr_to_ip(name))
       when 'CNAME'
-        add_cname(name, value)
+        remove_cname(name)
       else
         raise Proxy::Dns::Error, "Can't remove entries of type #{type}"
       end
+
+      update!
     end
   end
 end

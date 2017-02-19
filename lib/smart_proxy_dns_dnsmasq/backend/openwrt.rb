@@ -1,5 +1,9 @@
-module Proxy::Dns::Dnsmasq::Backend
+require 'ipaddr'
+
+module Proxy::Dns::Dnsmasq
   class Openwrt < ::Proxy::Dns::Dnsmasq::Record
+    attr_reader :config_file, :reload_cmd, :dirty
+
     def initialize(config, reload_cmd, dns_ttl)
       @config_file = config
       @reload_cmd = reload_cmd
@@ -12,46 +16,44 @@ module Proxy::Dns::Dnsmasq::Backend
       return unless @dirty
       @dirty = false
 
-      File.write(@config_file, @configuration.join '\n')
+      File.write(@config_file, configuration.join('\n'))
       system(@reload_cmd)
     end
 
-    def add_cname(name, canonical)
-      c = find_type(:cname, :name, name)
-      return true if c
+    def add_entry(type, fqdn, ip)
+      raise Proxy::Dns::Error, "OpenWRT UCI can't manage IPv6 entries" if type == 'AAAA' || type == 'PTR' && IPAddr.new(ip).ipv6?
+      return true if find_type(:domain, :name, fqdn)
 
-      @dirty = true
-      c = DSL::Config.new :cname
-      c.options[:cname] = name
-      c.options[:target] = canonical
-      configuration << c
-    end
-
-    def remove_cname(name)
-      c = find_type(:cname, :name, name)
-      return true unless c
-
-      @dirty = true
-      configuration.delete c
-    end
-
-    def add_host(fqdn = nil, ip = nil)
-      h = find_type(:domain, fqdn && :name || :ip, fqdn || ip)
-      return true if h
-
-      @dirty = true
       h = DSL::Config.new :domain
       h.options[:name] = fqdn
       h.options[:ip] = ip
       configuration << h
+      @dirty = true
     end
 
-    def remove_host(fqdn = nil, ip = nil)
-      h = find_type(:domain, fqdn && :name || :ip, fqdn || ip)
-      return true unless h
+    def remove_entry(type, fqdn = nil, ip = nil)
+      raise Proxy::Dns::Error, "OpenWRT UCI can't manage IPv6 entries" if type == 'AAAA' || type == 'PTR' && IPAddr.new(ip).ipv6?
+      return true unless h = find_type(:domain, fqdn && :name || :ip, fqdn || ip)
 
-      @dirty = true
       configuration.delete h
+      @dirty = true
+    end
+
+    def add_cname(name, canonical)
+      return true if find_type(:cname, :name, name)
+
+      c = DSL::Config.new :cname
+      c.options[:cname] = name
+      c.options[:target] = canonical
+      configuration << c
+      @dirty = true
+    end
+
+    def remove_cname(name)
+      return true unless c = find_type(:cname, :name, name)
+
+      configuration.delete c
+      @dirty = true
     end
 
     private
@@ -91,8 +93,8 @@ module Proxy::Dns::Dnsmasq::Backend
         def to_s
           "config #{type} #{name}\n" + options.map do |name, value|
             if value.is_a? Array
-              value.map do|value|
-                "        list #{name} '#{value}'"
+              value.map do|val|
+                "        list #{name} '#{val}'"
               end.join "\n"
             else
               "        config #{name} '#{value}'"
