@@ -1,4 +1,5 @@
 require 'ipaddr'
+require 'rb-inotify'
 
 module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
@@ -17,7 +18,20 @@ module Proxy::DHCP::Dnsmasq
       add_subnet(parse_config_for_subnet)
       load_subnet_data
 
-      # TODO: Add inotify listener for configs
+      # TODO: Add proper inotify listener for configs
+      @inotify = INotify::Notifier.new
+      @inotify.watch(File.dirname(lease_file), :modify, :moved_to) do |ev|
+        next unless ev.absolute_name == lease_file
+
+        leases = load_leases(subnet_service)
+        
+        # FIXME: Proper method for this
+        m.synchronize do
+          leases_by_ip.clear
+          leases_by_mac.clear
+        end
+        leases.each { |l| add_lease(l.subnet_address, l) }
+      end
 
       true
     end
