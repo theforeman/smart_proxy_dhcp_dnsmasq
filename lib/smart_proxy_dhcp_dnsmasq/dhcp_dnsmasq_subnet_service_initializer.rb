@@ -89,7 +89,9 @@ module Proxy::DHCP::Dnsmasq
               ip,
               mac,
               subnet,
-              :hostname => hostname)
+              :hostname => hostname,
+              :source_file => file
+            )
           end
         end
       end

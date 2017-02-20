@@ -1,3 +1,6 @@
+require 'fileutils'
+require 'tempfile'
+
 module Proxy::DHCP::Dnsmasq
   class Record < ::Proxy::DHCP::Server
     attr_reader :config_file, :reload_cmd
@@ -21,15 +24,20 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def del_record(record)
-      to_write = []
-      open(@config_file, 'r').each_line do |line|
-        to_write << line unless line.start_with? "dhcp-host=#{record.mac}"
+      found = false
+      tmp = Tempfile.open('reservations') do |output|
+        open(@config_file, 'r').each_line do |line|
+          output.puts line unless line.start_with? "dhcp-host=#{record.mac}"
+          found = true if line.start_with? "dhcp-host=#{record.mac}"
+        end
       end
-      File.write(@config_file, to_write.join("\n"))
+      FileUtils.mv(tmp, @config_file) if found
 
       raise Proxy::DHCP::Error, 'Failed to reload configuration' unless system(@reload_cmd)
 
       record
+    ensure
+      tmp.unlink if tmp
     end
   end
 end
