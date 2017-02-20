@@ -12,3 +12,12 @@
   - /etc/dnsmasq.d/foreman.conf
 :lease_file: /var/lib/dnsmasq/dhcp.leases
 :reload_cmd: systemctl reload dnsmasq
+
+# Example configuration for an OpenWRT router;
+#:config_files:
+#  - /tmp/etc/dnsmasq.conf
+#  - /etc/dnsmasq.d/reservations.conf
+#:lease_file: /tmp/dhcp.leases
+#:reload_cmd: /etc/init.d/dnsmasq reload
+#
+# This also requires that the conf-dir option is set in /etc/dnsmasq.conf

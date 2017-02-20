@@ -1,21 +1,25 @@
 require 'ipaddr'
 
 module Proxy::DHCP::Dnsmasq
-  class SubnetServiceInitializer
+  class SubnetService < ::Proxy::DHCP::SubnetService
     include Proxy::Log
 
     attr_reader :config_file, :lease_file
 
-    def initialize(config_files, lease_file)
+    def initialize(config_files, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
       @config_files = config_files
       @lease_file = lease_file
+
+      super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
     end
 
-    def initialized_subnet_service(subnet_service)
-      subnet_service.add_subnet(parse_config_for_subnet)
-      load_subnet_data(subnet_service)
+    def load!
+      add_subnet(parse_config_for_subnet)
+      load_subnet_data
 
-      subnet_service
+      # TODO: Add inotify listener for configs
+
+      true
     end
 
     def parse_config_for_subnet
@@ -27,6 +31,10 @@ module Proxy::DHCP::Dnsmasq
 
           option, value = line.split('=')
           case option
+          when 'dhcp-leasefile'
+            next if @lease_file
+
+            @lease_file = value
           when 'dhcp-range'
             data = value.split(',')
             
@@ -71,9 +79,9 @@ module Proxy::DHCP::Dnsmasq
     end
 
     # Expects subnet_service to have subnet data
-    def parse_config_for_dhcp_reservations(subnet_service)
+    def parse_config_for_dhcp_reservations(files = @config_files)
       to_ret = []
-      @config_files.each do |file|
+      files.each do |file|
         open(file, 'r').each_line do |line|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
@@ -83,7 +91,7 @@ module Proxy::DHCP::Dnsmasq
           when 'dhcp-host'
             mac, ip, hostname = value.split(',')
 
-            subnet = subnet_service.find_subnet(ip)
+            subnet = find_subnet(ip)
             to_ret << ::Proxy::DHCP::Reservation.new(
               hostname,
               ip,
@@ -101,20 +109,20 @@ module Proxy::DHCP::Dnsmasq
       raise Proxy::DHCP::Error, msg
     end
 
-    def load_subnet_data(subnet_service)
+    def load_subnet_data
       reservations = parse_config_for_dhcp_reservations(subnet_service)
-      reservations.each { |record| subnet_service.add_host(record.subnet_address, record) }
+      reservations.each { |record| add_host(record.subnet_address, record) }
       leases = load_leases(subnet_service)
-      leases.each { |lease| subnet_service.add_lease(lease.subnet_address, lease) }
+      leases.each { |lease| add_lease(lease.subnet_address, lease) }
     end
 
     # Expects subnet_service to have subnet data
-    def load_leases(subnet_service)
+    def load_leases
       leases = []
       open(@lease_file, 'r').each_line do |line|
         timestamp, mac, ip, hostname, client_id = line.split
 
-        subnet = subnet_service.find_subnet(ip)
+        subnet = find_subnet(ip)
         leases << ::Proxy::DHCP::Lease.new(
           client_id,
           ip,

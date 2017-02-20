@@ -16,16 +16,14 @@ To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dhcp.yml` and s
 
     :use_provider: dhcp_dnsmasq
 
-Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dns_dnsmasq.yml` and include:
+Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dhcp_dnsmasq.yml` and include:
 
-* `backend` (*optional*): The backend to use, currently implemented ones are; `openwrt`, and `default`
-* `lease_file`: The path to the lease file.
-* `config_file`: The path to the configuration file.
+* `config_files`: The path to the configuration files to load, changes will be written to the last one unless a `write_config_file` is provided.
+* `lease_file`: The path to the lease file. (*optional if `dhcp-leasefile` is set in one of the config files*)
 * `reload_cmd`: The command to use for reloading the dnsmasq configuration.
+* `write_config_file`: The file to write any new changes to, the smart-proxy will only be able to remove any reservations made in this file.
 
-For best results, `config_path` should point to a file in a dnsmasq `conf-dir` which only the smart-proxy accesses.
-
-**NB**: The `openwrt` backend uses the UCI configuration files, which for the moment don't support IPv6 entries.
+For best results, the write config should point to a file in a dnsmasq `conf-dir` which only the smart-proxy uses.
 
 ## Contributing
 
