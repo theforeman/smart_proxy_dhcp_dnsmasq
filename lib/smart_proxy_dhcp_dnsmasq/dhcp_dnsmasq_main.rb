@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'tempfile'
+require 'dhcp_common/server'
 
 module Proxy::DHCP::Dnsmasq
   class Record < ::Proxy::DHCP::Server

@@ -1,8 +1,6 @@
 module ::Proxy::DHCP::Dnsmasq
   class PluginConfiguration
     def load_classes
-      require 'dhcp_common/subnet_service'
-      require 'dhcp_common/server'
       require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_subnet_service'
       require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_main'
     end

@@ -1,5 +1,6 @@
 require 'ipaddr'
 require 'rb-inotify'
+require 'dhcp_common/subnet_service'
 
 module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
@@ -63,7 +64,7 @@ module Proxy::DHCP::Dnsmasq
             when 'm'
               ttl = ttl[0..-2].to_i * 60
             else
-              tll = ttl.to_i
+              ttl = ttl.to_i
             end
 
             configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
