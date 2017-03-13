@@ -18,9 +18,12 @@ module Proxy::DHCP::Dnsmasq
 
     def add_record(options={})
       record = super(options)
+      options = record.options
 
-      open(@config_file, 'a') do |file|
-        file.puts "dhcp-host=#{record.mac},#{record.ip},#{record.name}"
+      open(@write_config_file, 'a') do |file|
+        file.puts "dhcp-host=set:#{record.mac},#{record.mac},#{record.ip},#{record.name}"
+        file.puts "dhcp-boot=tag:#{record.mac},#{options[:filename]},#{options[:nextServer]}" if\
+          options[:filename] && options[:nextServer]
       end
       raise Proxy::DHCP::Error, 'Failed to reload configuration' unless system(@reload_cmd)
 
@@ -31,8 +34,12 @@ module Proxy::DHCP::Dnsmasq
       found = false
       tmp = Tempfile.open('reservations') do |output|
         open(@write_config_file, 'r').each_line do |line|
-          output.puts line unless line.start_with? "dhcp-host=#{record.mac}"
-          found = true if line.start_with? "dhcp-host=#{record.mac}"
+          output.puts line unless line.start_with?("dhcp-host=#{record.mac}") || \
+                                  line.start_with?("dhcp-host=set:#{record.mac}") || \
+                                  line.start_with?("dhcp-boot=tag:#{record.mac}")
+
+          found = true if line.start_with?("dhcp-host=#{record.mac}") || \
+                          line.start_with?("dhcp-host=set:#{record.mac}")
         end
       end
       FileUtils.mv(tmp, @write_config_file) if found
