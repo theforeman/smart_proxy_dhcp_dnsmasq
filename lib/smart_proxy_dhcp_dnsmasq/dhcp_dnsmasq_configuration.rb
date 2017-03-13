@@ -5,7 +5,7 @@ module ::Proxy::DHCP::Dnsmasq
       require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_main'
     end
 
-    def load_dependency_injection_wirings(container_instance, settings)
+    def load_dependency_injection_wirings(container, settings)
       write_config = settings[:write_config_file] || settings[:config_files].last
 
       container.dependency :memory_store, ::Proxy::MemoryStore
@@ -16,7 +16,7 @@ module ::Proxy::DHCP::Dnsmasq
           container.get_dependency(:memory_store), container.get_dependency(:memory_store))
       end)
       container.dependency :dhcp_provider, (lambda do
-        Proxy::DHCP::Dnsmasq::Provider.new(write_config, settings[:reload_cmd], container.get_dependency(:subnet_service))
+        Proxy::DHCP::Dnsmasq::Record.new(settings[:config_files], write_config, settings[:reload_cmd], container.get_dependency(:subnet_service))
       end)
     end
   end

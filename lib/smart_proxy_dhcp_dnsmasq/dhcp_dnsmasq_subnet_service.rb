@@ -18,7 +18,12 @@ module Proxy::DHCP::Dnsmasq
     def load!
       add_subnet(parse_config_for_subnet)
       load_subnet_data
+      add_watch
 
+      true
+    end
+
+    def add_watch
       # TODO: Add proper inotify listener for configs
       @inotify = INotify::Notifier.new
       @inotify.watch(File.dirname(lease_file), :modify, :moved_to) do |ev|
@@ -33,8 +38,6 @@ module Proxy::DHCP::Dnsmasq
         end
         leases.each { |l| add_lease(l.subnet_address, l) }
       end
-
-      true
     end
 
     def parse_config_for_subnet
@@ -125,9 +128,9 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def load_subnet_data
-      reservations = parse_config_for_dhcp_reservations(subnet_service)
+      reservations = parse_config_for_dhcp_reservations
       reservations.each { |record| add_host(record.subnet_address, record) }
-      leases = load_leases(subnet_service)
+      leases = load_leases
       leases.each { |lease| add_lease(lease.subnet_address, lease) }
     end
 
