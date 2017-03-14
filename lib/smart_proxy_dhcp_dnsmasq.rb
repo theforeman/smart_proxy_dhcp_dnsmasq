@@ -1,3 +1,7 @@
-require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_plugin'
+module Proxy
+  module DHCP
+    module Dnsmasq; end
+  end
+end
 
-module Proxy::DHCP::Dnsmasq; end
+require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_plugin'

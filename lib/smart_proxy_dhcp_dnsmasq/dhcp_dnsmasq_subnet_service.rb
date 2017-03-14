@@ -1,5 +1,6 @@
 require 'ipaddr'
 require 'rb-inotify'
+require 'dhcp_common/dhcp_common'
 require 'dhcp_common/subnet_service'
 
 module Proxy::DHCP::Dnsmasq
@@ -93,12 +94,13 @@ module Proxy::DHCP::Dnsmasq
         end
       end
 
+      @ttl = configuration[:ttl]
       ::Proxy::DHCP::Subnet.new(configuration[:address], configuration[:mask], configuration[:options])
     end
 
     # Expects subnet_service to have subnet data
     def parse_config_for_dhcp_reservations(files = @config_files)
-      to_ret = []
+      to_ret = {}
       files.each do |file|
         open(file, 'r').each_line do |line|
           line.strip!
@@ -107,21 +109,36 @@ module Proxy::DHCP::Dnsmasq
           option, value = line.split('=')
           case option
           when 'dhcp-host'
-            mac, ip, hostname = value.split(',')
+            data = value.split(',')
+            data.shift while data.first.start_with? 'set:'
+
+            mac, ip, hostname = data
 
             subnet = find_subnet(ip)
-            to_ret << ::Proxy::DHCP::Reservation.new(
+            to_ret[mac] = ::Proxy::DHCP::Reservation.new(
               hostname,
               ip,
               mac,
               subnet,
-              :hostname => hostname,
-              :source_file => file
+#             :source_file => file # TODO: Needs to overload the comparison
             )
+          when 'dhcp-boot'
+            data = value.split(',')
+            if data.first.start_with? 'tag:'
+              mac = data.first[4..-1]
+              data.shift
+
+              next unless to_ret.key? mac
+
+              file, server = data
+
+              to_ret[mac].options[:nextServer] = file
+              to_ret[mac].options[:filename] = server
+            end
           end
         end
       end
-      to_ret
+      to_ret.values
     rescue Exception => e
       logger.error msg = "Unable to parse reservations: #{e}"
       raise Proxy::DHCP::Error, msg
@@ -129,9 +146,24 @@ module Proxy::DHCP::Dnsmasq
 
     def load_subnet_data
       reservations = parse_config_for_dhcp_reservations
-      reservations.each { |record| add_host(record.subnet_address, record) }
+      reservations.each do |record|
+        if dupe = find_host_by_mac(record.subnet_address, record.mac)
+          delete_host(dupe)
+        end
+
+        add_host(record.subnet_address, record)
+      end
       leases = load_leases
-      leases.each { |lease| add_lease(lease.subnet_address, lease) }
+      leases.each do |lease|
+        if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
+          delete_lease(dupe)
+        end
+        if dupe = find_lease_by_ip(lease.subnet_address, lease.ip)
+          delete_lease(dupe)
+        end
+
+        add_lease(lease.subnet_address, lease) 
+      end
     end
 
     # Expects subnet_service to have subnet data
@@ -140,15 +172,19 @@ module Proxy::DHCP::Dnsmasq
       open(@lease_file, 'r').each_line do |line|
         timestamp, mac, ip, hostname, client_id = line.split
 
+        timestamp = timestamp.to_i
+
         subnet = find_subnet(ip)
         leases << ::Proxy::DHCP::Lease.new(
-          client_id,
+          hostname,
           ip,
           mac,
           subnet,
-          timestamp - @configuration[:ttl],
+          timestamp - (@ttl or 24*60*60),
           timestamp,
-          'active')
+          'active',
+          deleteable: false,
+        )
       end
       leases
     end

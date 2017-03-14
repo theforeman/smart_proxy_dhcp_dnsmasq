@@ -1,8 +1,11 @@
+require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_configuration'
+require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_version'
+
 module Proxy::DHCP::Dnsmasq
   class Plugin < ::Proxy::Provider
-    plugin :dns_dnsmasq, ::Proxy::DHCP::Dnsmasq::VERSION
+    plugin :dhcp_dnsmasq, ::Proxy::DHCP::Dnsmasq::VERSION
 
-    requires :dns, '>= 1.15'
+    requires :dhcp, '>= 1.15'
     default_settings :config_files => [ '/etc/dnsmasq.d/foreman.conf' ],
                      :reload_cmd => 'systemctl reload dnsmasq'
 
