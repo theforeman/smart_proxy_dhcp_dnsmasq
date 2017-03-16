@@ -34,6 +34,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def del_record(record)
+      # TODO: Removal of leases, to prevent DHCP record collisions
       return record if record.is_a? ::Proxy::DHCP::Lease
 
       found = false

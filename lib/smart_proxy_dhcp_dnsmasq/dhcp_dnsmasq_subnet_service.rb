@@ -1,5 +1,5 @@
 require 'ipaddr'
-require 'rb-inotify'
+#require 'rb-inotify'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/subnet_service'
 
@@ -19,7 +19,7 @@ module Proxy::DHCP::Dnsmasq
     def load!
       add_subnet(parse_config_for_subnet)
       load_subnet_data
-      add_watch
+      #add_watch # TODO
 
       true
     end
@@ -31,7 +31,7 @@ module Proxy::DHCP::Dnsmasq
         next unless ev.absolute_name == lease_file
 
         leases = load_leases(subnet_service)
-        
+
         # FIXME: Proper method for this
         m.synchronize do
           leases_by_ip.clear
@@ -56,7 +56,7 @@ module Proxy::DHCP::Dnsmasq
             @lease_file = value
           when 'dhcp-range'
             data = value.split(',')
-            
+
             ttl = data.pop
             mask = data.pop
             range_to = data.pop
@@ -112,7 +112,9 @@ module Proxy::DHCP::Dnsmasq
             data = value.split(',')
             data.shift while data.first.start_with? 'set:'
 
-            mac, ip, hostname = data
+            mac, ip, hostname = data[0,3]
+
+            # TODO: Possible ttl on end
 
             subnet = find_subnet(ip)
             to_ret[mac] = ::Proxy::DHCP::Reservation.new(
@@ -153,7 +155,8 @@ module Proxy::DHCP::Dnsmasq
 
         add_host(record.subnet_address, record)
       end
-      leases = load_leases
+
+      leases = [] # load_leases # FIXME: Will cause collisions if added
       leases.each do |lease|
         if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
           delete_lease(dupe)
@@ -162,7 +165,7 @@ module Proxy::DHCP::Dnsmasq
           delete_lease(dupe)
         end
 
-        add_lease(lease.subnet_address, lease) 
+        add_lease(lease.subnet_address, lease)
       end
     end
 
