@@ -4,12 +4,13 @@ require 'dhcp_common/server'
 
 module Proxy::DHCP::Dnsmasq
   class Record < ::Proxy::DHCP::Server
-    attr_reader :config_files, :write_config_file, :reload_cmd
+    attr_reader :config_files, :write_config_file, :reload_cmd, :subnet_service
 
     def initialize(config_files, write_config_file, reload_cmd, subnet_service)
       @config_files = config_files
       @write_config_file = write_config_file
       @reload_cmd = reload_cmd
+      @subnet_service = subnet_service
 
       subnet_service.load!
 
@@ -39,7 +40,7 @@ module Proxy::DHCP::Dnsmasq
 
       found = false
       tmppath = nil
-      tmp = Tempfile.open('reservations') do |output|
+      Tempfile.open('reservations') do |output|
         tmppath = output.path.freeze
         open(@write_config_file, 'r').each_line do |line|
           output.puts line unless line.start_with?("dhcp-host=#{record.mac}") || \
@@ -50,7 +51,7 @@ module Proxy::DHCP::Dnsmasq
                           line.start_with?("dhcp-host=set:#{record.mac}")
         end
       end
-      FileUtils.mv(tmp, @write_config_file) if found
+      FileUtils.mv(tmppath, @write_config_file) if found
 
       subnet_service.delete_host(record)
 
@@ -58,7 +59,7 @@ module Proxy::DHCP::Dnsmasq
 
       record
     ensure
-      File.unlink(tmppath) if File.exists?(tmppath)
+      File.unlink(tmppath) if tmppath && File.exists?(tmppath)
     end
   end
 end
