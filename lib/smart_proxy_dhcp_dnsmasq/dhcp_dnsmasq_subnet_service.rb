@@ -7,17 +7,17 @@ module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
     include Proxy::Log
 
-    attr_reader :config_file, :lease_file
+    attr_reader :config_dir, :lease_file
 
-    def initialize(config_files, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
-      @config_files = config_files
+    def initialize(config_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
+      @config_dir = config_dir.to_a
       @lease_file = lease_file
 
       super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
     end
 
     def load!
-      add_subnet(parse_config_for_subnet)
+      add_subnet(parse_configs_for_subnet)
       load_subnet_data
       #add_watch # TODO
 
@@ -41,55 +41,60 @@ module Proxy::DHCP::Dnsmasq
       end
     end
 
-    def parse_config_for_subnet
-      configuration = { }
-      @config_files.each do |file|
-        open(file, 'r').each_line do |line|
-          line.strip!
-          next if line.empty? || line.start_with?('#') || !line.include?('=')
+    def parse_configs_for_subnet
+      configuration = {}
+      @config_dir.each do |dir|
+        files = [dir]
+        files = Dir["#{dir}/*"] if File.directory? dir
 
-          option, value = line.split('=')
-          case option
-          when 'dhcp-leasefile'
-            next if @lease_file
+        files.each do |file|
+          open(file, 'r').each_line do |line|
+            line.strip!
+            next if line.empty? || line.start_with?('#') || !line.include?('=')
 
-            @lease_file = value
-          when 'dhcp-range'
-            data = value.split(',')
+            option, value = line.split('=')
+            case option
+            when 'dhcp-leasefile'
+              next if @lease_file
 
-            ttl = data.pop
-            mask = data.pop
-            range_to = data.pop
-            range_from = data.pop
+              @lease_file = value
+            when 'dhcp-range'
+              data = value.split(',')
 
-            case ttl[-1]
-            when 'h'
-              ttl = ttl[0..-2].to_i * 60 * 60
-            when 'm'
-              ttl = ttl[0..-2].to_i * 60
-            else
-              ttl = ttl.to_i
+              ttl = data.pop
+              mask = data.pop
+              range_to = data.pop
+              range_from = data.pop
+
+              case ttl[-1]
+              when 'h'
+                ttl = ttl[0..-2].to_i * 60 * 60
+              when 'm'
+                ttl = ttl[0..-2].to_i * 60
+              else
+                ttl = ttl.to_i
+              end
+
+              configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
+                                   mask: mask,
+                                   range: [ range_from, range_to ],
+                                   ttl: ttl
+            when 'dhcp-option'
+              data = value.split(',')
+
+              configuration[:options] = {} unless configuration.key? :options
+
+              until data.empty? || /\A\d+\z/ === data.first
+                data.shift
+              end
+              next if data.empty?
+
+              code = data.shift.to_i
+              option = ::Proxy::DHCP::Standard.select { |k, v| v[:code] == code }.first.first
+
+              data = data.first unless ::Proxy::DHCP::Standard[option][:is_list]
+              configuration[:options][option] = data
             end
-
-            configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
-                                 mask: mask,
-                                 range: [ range_from, range_to ],
-                                 ttl: ttl
-          when 'dhcp-option'
-            data = value.split(',')
-
-            configuration[:options] = {} unless configuration.key? :options
-
-            until data.empty? || /\A\d+\z/ === data.first
-              data.shift
-            end
-            next if data.empty?
-
-            code = data.shift.to_i
-            option = ::Proxy::DHCP::Standard.select { |k, v| v[:code] == code }.first.first
-
-            data = data.first unless ::Proxy::DHCP::Standard[option][:is_list]
-            configuration[:options][option] = data
           end
         end
       end
@@ -99,43 +104,48 @@ module Proxy::DHCP::Dnsmasq
     end
 
     # Expects subnet_service to have subnet data
-    def parse_config_for_dhcp_reservations(files = @config_files)
+    def parse_config_for_dhcp_reservations(files = @config_dir)
       to_ret = {}
-      files.each do |file|
-        open(file, 'r').each_line do |line|
-          line.strip!
-          next if line.empty? || line.start_with?('#') || !line.include?('=')
+      [files].each do |dir|
+        files = [dir]
+        files = Dir["#{dir}/*"] if File.directory? dir
 
-          option, value = line.split('=')
-          case option
-          when 'dhcp-host'
-            data = value.split(',')
-            data.shift while data.first.start_with? 'set:'
+        files.each do |file|
+          open(file, 'r').each_line do |line|
+            line.strip!
+            next if line.empty? || line.start_with?('#') || !line.include?('=')
 
-            mac, ip, hostname = data[0,3]
+            option, value = line.split('=')
+            case option
+            when 'dhcp-host'
+              data = value.split(',')
+              data.shift while data.first.start_with? 'set:'
 
-            # TODO: Possible ttl on end
+              mac, ip, hostname = data[0,3]
 
-            subnet = find_subnet(ip)
-            to_ret[mac] = ::Proxy::DHCP::Reservation.new(
-              hostname,
-              ip,
-              mac,
-              subnet,
-#             :source_file => file # TODO: Needs to overload the comparison
-            )
-          when 'dhcp-boot'
-            data = value.split(',')
-            if data.first.start_with? 'tag:'
-              mac = data.first[4..-1]
-              data.shift
+              # TODO: Possible ttl on end
 
-              next unless to_ret.key? mac
+              subnet = find_subnet(ip)
+              to_ret[mac] = ::Proxy::DHCP::Reservation.new(
+                hostname,
+                ip,
+                mac,
+                subnet,
+  #             :source_file => file # TODO: Needs to overload the comparison
+              )
+            when 'dhcp-boot'
+              data = value.split(',')
+              if data.first.start_with? 'tag:'
+                mac = data.first[4..-1]
+                data.shift
 
-              file, server = data
+                next unless to_ret.key? mac
 
-              to_ret[mac].options[:nextServer] = file
-              to_ret[mac].options[:filename] = server
+                file, server = data
+
+                to_ret[mac].options[:nextServer] = file
+                to_ret[mac].options[:filename] = server
+              end
             end
           end
         end
@@ -173,7 +183,7 @@ module Proxy::DHCP::Dnsmasq
     def load_leases
       leases = []
       open(@lease_file, 'r').each_line do |line|
-        timestamp, mac, ip, hostname, client_id = line.split
+        timestamp, mac, ip, hostname, _client_id = line.split
 
         timestamp = timestamp.to_i
 
@@ -183,10 +193,10 @@ module Proxy::DHCP::Dnsmasq
           ip,
           mac,
           subnet,
-          timestamp - (@ttl or 24*60*60),
+          timestamp - (@ttl || 24 * 60 * 60),
           timestamp,
           'active',
-          deleteable: false,
+          deleteable: false
         )
       end
       leases
