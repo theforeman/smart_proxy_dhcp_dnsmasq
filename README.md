@@ -10,6 +10,14 @@ for how to install Smart Proxy plugins
 
 This plugin is compatible with Smart Proxy 1.15 or higher.
 
+You need to add two lines to your dnsmasq configuration to use this plugin;
+```
+dhcp-optsfile=<config_dir>/dhcpopts.conf
+dhcp-hostsfile=<config_dir>/dhcphosts/
+```
+
+Dnsmasq will also require write privileges to the configuration file and folder specified.
+
 ## Configuration
 
 To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dhcp.yml` and set:

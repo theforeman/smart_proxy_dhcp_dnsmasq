@@ -10,14 +10,14 @@ module Proxy::DHCP::Dnsmasq
     attr_reader :config_dir, :lease_file
 
     def initialize(config_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
-      @config_dir = config_dir.to_a
+      @config_dir = config_dir
       @lease_file = lease_file
 
       super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
     end
 
     def load!
-      add_subnet(parse_configs_for_subnet)
+      add_subnet(parse_config_for_subnet)
       load_subnet_data
       #add_watch # TODO
 
@@ -41,60 +41,57 @@ module Proxy::DHCP::Dnsmasq
       end
     end
 
-    def parse_configs_for_subnet
+    def parse_config_for_subnet
       configuration = {}
-      @config_dir.each do |dir|
-        files = [dir]
-        files = Dir["#{dir}/*"] if File.directory? dir
+      files = Dir["#{@config_dir}/*"]
 
-        files.each do |file|
-          open(file, 'r').each_line do |line|
-            line.strip!
-            next if line.empty? || line.start_with?('#') || !line.include?('=')
+      files.each do |file|
+        open(file, 'r').each_line do |line|
+          line.strip!
+          next if line.empty? || line.start_with?('#') || !line.include?('=')
 
-            option, value = line.split('=')
-            case option
-            when 'dhcp-leasefile'
-              next if @lease_file
+          option, value = line.split('=')
+          case option
+          when 'dhcp-leasefile'
+            next if @lease_file
 
-              @lease_file = value
-            when 'dhcp-range'
-              data = value.split(',')
+            @lease_file = value
+          when 'dhcp-range'
+            data = value.split(',')
 
-              ttl = data.pop
-              mask = data.pop
-              range_to = data.pop
-              range_from = data.pop
+            ttl = data.pop
+            mask = data.pop
+            range_to = data.pop
+            range_from = data.pop
 
-              case ttl[-1]
-              when 'h'
-                ttl = ttl[0..-2].to_i * 60 * 60
-              when 'm'
-                ttl = ttl[0..-2].to_i * 60
-              else
-                ttl = ttl.to_i
-              end
-
-              configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
-                                   mask: mask,
-                                   range: [ range_from, range_to ],
-                                   ttl: ttl
-            when 'dhcp-option'
-              data = value.split(',')
-
-              configuration[:options] = {} unless configuration.key? :options
-
-              until data.empty? || /\A\d+\z/ === data.first
-                data.shift
-              end
-              next if data.empty?
-
-              code = data.shift.to_i
-              option = ::Proxy::DHCP::Standard.select { |k, v| v[:code] == code }.first.first
-
-              data = data.first unless ::Proxy::DHCP::Standard[option][:is_list]
-              configuration[:options][option] = data
+            case ttl[-1]
+            when 'h'
+              ttl = ttl[0..-2].to_i * 60 * 60
+            when 'm'
+              ttl = ttl[0..-2].to_i * 60
+            else
+              ttl = ttl.to_i
             end
+
+            configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
+                                 mask: mask,
+                                 range: [ range_from, range_to ],
+                                 ttl: ttl
+          when 'dhcp-option'
+            data = value.split(',')
+
+            configuration[:options] = {} unless configuration.key? :options
+
+            until data.empty? || /\A\d+\z/ === data.first
+              data.shift
+            end
+            next if data.empty?
+
+            code = data.shift.to_i
+            option = ::Proxy::DHCP::Standard.select { |k, v| v[:code] == code }.first.first
+
+            data = data.first unless ::Proxy::DHCP::Standard[option][:is_list]
+            configuration[:options][option] = data
           end
         end
       end
@@ -104,48 +101,45 @@ module Proxy::DHCP::Dnsmasq
     end
 
     # Expects subnet_service to have subnet data
-    def parse_config_for_dhcp_reservations(files = @config_dir)
+    def parse_config_for_dhcp_reservations
       to_ret = {}
-      [files].each do |dir|
-        files = [dir]
-        files = Dir["#{dir}/*"] if File.directory? dir
+      files = Dir["#{@config_dir}/*"]
 
-        files.each do |file|
-          open(file, 'r').each_line do |line|
-            line.strip!
-            next if line.empty? || line.start_with?('#') || !line.include?('=')
+      files.each do |file|
+        open(file, 'r').each_line do |line|
+          line.strip!
+          next if line.empty? || line.start_with?('#') || !line.include?('=')
 
-            option, value = line.split('=')
-            case option
-            when 'dhcp-host'
-              data = value.split(',')
-              data.shift while data.first.start_with? 'set:'
+          option, value = line.split('=')
+          case option
+          when 'dhcp-host'
+            data = value.split(',')
+            data.shift while data.first.start_with? 'set:'
 
-              mac, ip, hostname = data[0,3]
+            mac, ip, hostname = data[0,3]
 
-              # TODO: Possible ttl on end
+            # TODO: Possible ttl on end
 
-              subnet = find_subnet(ip)
-              to_ret[mac] = ::Proxy::DHCP::Reservation.new(
-                hostname,
-                ip,
-                mac,
-                subnet,
-  #             :source_file => file # TODO: Needs to overload the comparison
-              )
-            when 'dhcp-boot'
-              data = value.split(',')
-              if data.first.start_with? 'tag:'
-                mac = data.first[4..-1]
-                data.shift
+            subnet = find_subnet(ip)
+            to_ret[mac] = ::Proxy::DHCP::Reservation.new(
+              hostname,
+              ip,
+              mac,
+              subnet,
+#             :source_file => file # TODO: Needs to overload the comparison
+            )
+          when 'dhcp-boot'
+            data = value.split(',')
+            if data.first.start_with? 'tag:'
+              mac = data.first[4..-1]
+              data.shift
 
-                next unless to_ret.key? mac
+              next unless to_ret.key? mac
 
-                file, server = data
+              file, server = data
 
-                to_ret[mac].options[:nextServer] = file
-                to_ret[mac].options[:filename] = server
-              end
+              to_ret[mac].options[:nextServer] = file
+              to_ret[mac].options[:filename] = server
             end
           end
         end
