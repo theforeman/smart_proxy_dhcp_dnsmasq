@@ -27,8 +27,8 @@ module Proxy::DHCP::Dnsmasq
       tagstring = ",set:#{tags.join(',set:')}" unless tags.empty?
 
       File.write(File.join(@config_dir, 'dhcphosts', "#{sanitize_string record.mac}.conf"),
-                 "#{record.mac}#{tagstring},#{record.ip},#{record.name}")
-      subnet_service.add_host(record)
+                 "#{record.mac}#{tagstring},#{record.ip},#{record.name}\n")
+      subnet_service.add_host(record.subnet_address, record)
 
       try_reload_cmd
       record
@@ -41,7 +41,7 @@ module Proxy::DHCP::Dnsmasq
       path = File.join(@config_dir, 'dhcphosts', "#{sanitize_string record.mac}.conf")
       File.unlink(path) if File.exist? path
 
-      subnet_service.delete_host(record)
+      subnet_service.delete_host(record.subnet_address, record)
 
       try_reload_cmd
       record
@@ -66,7 +66,7 @@ module Proxy::DHCP::Dnsmasq
       path = File.join(@config_dir, 'dhcpopts.conf').freeze
 
       optsfile_content << line
-      File.write(path, optsfile_content.join("\n"))
+      File.write(path, optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)

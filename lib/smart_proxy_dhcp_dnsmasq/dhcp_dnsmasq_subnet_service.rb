@@ -156,7 +156,7 @@ module Proxy::DHCP::Dnsmasq
 
       dhcpopts_path = File.join(@target_dir, 'dhcpopts.conf')
       open(dhcpopts_path, 'r').each_line do |line|
-        data = value.split(',')
+        data = line.split(',')
         next unless data.first.start_with? 'tag:'
 
         tag = data.first[4..-1]
