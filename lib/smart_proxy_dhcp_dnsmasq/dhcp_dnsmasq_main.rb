@@ -10,6 +10,7 @@ module Proxy::DHCP::Dnsmasq
       @config_dir = target_dir
       @reload_cmd = reload_cmd
       @subnet_service = subnet_service
+      @optsfile_content = []
 
       subnet_service.load!
 
@@ -57,7 +58,7 @@ module Proxy::DHCP::Dnsmasq
       path = File.join(@config_dir, 'dhcpopts.conf').freeze
 
       @optsfile_content = open(path).readlines \
-        if File.exist?(path) && @optsfile_content.nil?
+        if File.exist?(path) && @optsfile_content.empty?
       @optsfile_content
     end
 
