@@ -18,7 +18,7 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
 
     File.expects(:write).with(
       '/etc/dnsmasq.d/dhcphosts/00_01_02_03_04_05.conf',
-      '00:01:02:03:04:05,set:bf_bootfile,set:ns_10_0_0_2,10.0.0.1,hostname'
+      "00:01:02:03:04:05,set:bf_bootfile,set:ns_10_0_0_2,10.0.0.1,hostname\n"
     )
     @server.expects(:append_optsfile)
            .with('tag:bf_bootfile,option:bootfile-name,bootfile').returns(true)
@@ -40,7 +40,7 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
   def test_del_record
     subnet = ::Proxy::DHCP::Subnet.new('10.0.0.0', '255.0.0.0')
     host = ::Proxy::DHCP::Reservation.new('10.0.0.0', '255.0.0.0', '00:01:02:03:04:05', subnet)
-    @subnet_service.expects(:delete_host).with(host).returns(true)
+    @subnet_service.expects(:delete_host).with('10.0.0.0', host).returns(true)
 
     File.expects(:exist?).with('/etc/dnsmasq.d/dhcphosts/00_01_02_03_04_05.conf').returns(true)
     File.expects(:unlink).with('/etc/dnsmasq.d/dhcphosts/00_01_02_03_04_05.conf').returns(true)
