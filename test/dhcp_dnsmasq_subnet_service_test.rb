@@ -12,7 +12,7 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
     lease = ::Proxy::DHCP::Lease.new('test', '10.0.0.10', 'ba:be:fa:ce:ca:fe', subnet, Time.now, Time.now + 1000, 'active')
 
     initializer = Proxy::DHCP::Dnsmasq::SubnetService.new(
-      'config/file', 'lease/file',
+      'config/file', 'config/dir', 'lease/file',
       ::Proxy::MemoryStore.new, ::Proxy::MemoryStore.new,
       ::Proxy::MemoryStore.new, ::Proxy::MemoryStore.new,
       ::Proxy::MemoryStore.new

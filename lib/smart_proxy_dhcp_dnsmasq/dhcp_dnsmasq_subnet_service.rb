@@ -9,8 +9,9 @@ module Proxy::DHCP::Dnsmasq
 
     attr_reader :config_dir, :lease_file
 
-    def initialize(config_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
-      @config_dir = config_dir
+    def initialize(config, target_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
+      @config_paths = [config].flatten
+      @target_dir = target_dir
       @lease_file = lease_file
 
       super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
@@ -30,7 +31,7 @@ module Proxy::DHCP::Dnsmasq
       @inotify.watch(File.dirname(lease_file), :modify, :moved_to) do |ev|
         next unless ev.absolute_name == lease_file
 
-        leases = load_leases(subnet_service)
+        leases = load_leases
 
         # FIXME: Proper method for this
         m.synchronize do
@@ -43,7 +44,11 @@ module Proxy::DHCP::Dnsmasq
 
     def parse_config_for_subnet
       configuration = {}
-      files = Dir["#{@config_dir}/*"]
+      files = []
+      @config_paths.each do |path|
+        files << path if File.exist? path
+        files += Dir["#{path}/*"] if Dir.exist? path
+      end
 
       files.each do |file|
         open(file, 'r').each_line do |line|
@@ -64,31 +69,30 @@ module Proxy::DHCP::Dnsmasq
             range_to = data.pop
             range_from = data.pop
 
-            case ttl[-1]
-            when 'h'
-              ttl = ttl[0..-2].to_i * 60 * 60
-            when 'm'
-              ttl = ttl[0..-2].to_i * 60
-            else
-              ttl = ttl.to_i
-            end
+            ttl = case ttl[-1]
+                  when 'h'
+                    ttl[0..-2].to_i * 60 * 60
+                  when 'm'
+                    ttl[0..-2].to_i * 60
+                  else
+                    ttl.to_i
+                  end
 
-            configuration.merge! address: IPAddr.new("#{range_from}/#{mask}").to_s,
-                                 mask: mask,
-                                 range: [ range_from, range_to ],
-                                 ttl: ttl
+            configuration.merge! \
+              address: IPAddr.new("#{range_from}/#{mask}").to_s,
+              mask: mask,
+              range: [range_from, range_to],
+              ttl: ttl
           when 'dhcp-option'
             data = value.split(',')
 
             configuration[:options] = {} unless configuration.key? :options
 
-            until data.empty? || /\A\d+\z/ === data.first
-              data.shift
-            end
+            data.shift until data.empty? || /\A\d+\z/ === data.first
             next if data.empty?
 
             code = data.shift.to_i
-            option = ::Proxy::DHCP::Standard.select { |k, v| v[:code] == code }.first.first
+            option = ::Proxy::DHCP::Standard.select { |_k, v| v[:code] == code }.first.first
 
             data = data.first unless ::Proxy::DHCP::Standard[option][:is_list]
             configuration[:options][option] = data
@@ -103,7 +107,11 @@ module Proxy::DHCP::Dnsmasq
     # Expects subnet_service to have subnet data
     def parse_config_for_dhcp_reservations
       to_ret = {}
-      files = Dir["#{@config_dir}/*"]
+      files = []
+      @config_paths.each do |path|
+        files << path if File.exist? path
+        files += Dir[File.join(path), '*'] if Dir.exist? path
+      end
 
       files.each do |file|
         open(file, 'r').each_line do |line|
@@ -116,7 +124,7 @@ module Proxy::DHCP::Dnsmasq
             data = value.split(',')
             data.shift while data.first.start_with? 'set:'
 
-            mac, ip, hostname = data[0,3]
+            mac, ip, hostname = data[0, 3]
 
             # TODO: Possible ttl on end
 
@@ -144,6 +152,50 @@ module Proxy::DHCP::Dnsmasq
           end
         end
       end
+      dhcpoptions = {}
+
+      dhcpopts_path = File.join(@target_dir, 'dhcpopts.conf')
+      open(dhcpopts_path, 'r').each_line do |line|
+        data = value.split(',')
+        next unless data.first.start_with? 'tag:'
+
+        tag = data.first[4..-1]
+        data.shift
+
+        dhcpoptions[tag] = data.last
+      end if File.exist? dhcpopts_path
+
+      Dir[File.join(@target_dir, 'dhcphosts', '*')].each do |file|
+        open(file, 'r').each_line do |line|
+          data = line.split(',')
+
+          mac = data.first
+          data.shift
+
+          options = {}
+          while data.first.start_with? 'set:'
+            tag = data.first[4..-1]
+            value = dhcpoptions[tag]
+
+            next if value.nil?
+
+            options[:nextServer] = value if tag.start_with? 'ns'
+            options[:filename] = value if tag.start_with? 'bf'
+          end
+
+          ip, name = data
+          subnet = find_subnet(ip)
+
+          to_ret[mac] = ::Proxy::DHCP::Reservation.new(
+            name,
+            ip,
+            mac,
+            subnet,
+            options
+          )
+        end
+      end
+
       to_ret.values
     rescue Exception => e
       logger.error msg = "Unable to parse reservations: #{e}"
@@ -175,25 +227,19 @@ module Proxy::DHCP::Dnsmasq
 
     # Expects subnet_service to have subnet data
     def load_leases
-      leases = []
-      open(@lease_file, 'r').each_line do |line|
+      open(@lease_file, 'r').readlines.map do |line|
         timestamp, mac, ip, hostname, _client_id = line.split
-
         timestamp = timestamp.to_i
 
         subnet = find_subnet(ip)
-        leases << ::Proxy::DHCP::Lease.new(
-          hostname,
-          ip,
-          mac,
-          subnet,
+        ::Proxy::DHCP::Lease.new(
+          hostname, ip, mac, subnet,
           timestamp - (@ttl || 24 * 60 * 60),
           timestamp,
           'active',
           deleteable: false
         )
       end
-      leases
     end
   end
 end

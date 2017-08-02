@@ -3,18 +3,23 @@
 # Configuration file for 'dhcp_dnsmasq' dhcp provider
 #
 
-# This pluing requires that the following options are set in /etc/dnsmasq.conf
+# This pluing requires that the following options are set in your dnsmasq
+# configuration;
 #   dhcp-optsfile=<config_dir>/dhcpopts.conf
 #   dhcp-hostsfile=<config_dir>/dhcphosts/
 
 # Configuration files to parse, writing any additional entries will be done to
 # the last of the files unless a specific write file is provided;
 #
-:config_dir: /etc/dnsmasq.d/dhcp/
+:config: /etc/dnsmasq.conf
+:target_dir: /etc/dnsmasq.d/dhcp/
 :lease_file: /var/lib/dnsmasq/dhcp.leases
 :reload_cmd: systemctl reload dnsmasq
 
 # Example configuration for an OpenWRT router;
-#:config_dir: /etc/dnsmasq.d/dhcp/
+#:config:
+#  - /tmp/etc/dnsmasq.conf
+#  - /etc/dnsmasq.conf
+#:target_dir: /etc/dnsmasq.d/dhcp/
 #:lease_file: /tmp/dhcp.leases
 #:reload_cmd: /etc/init.d/dnsmasq reload

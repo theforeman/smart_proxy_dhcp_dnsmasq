@@ -6,8 +6,8 @@ module Proxy::DHCP::Dnsmasq
   class Record < ::Proxy::DHCP::Server
     attr_reader :config_dir, :reload_cmd, :subnet_service
 
-    def initialize(config_dir, reload_cmd, subnet_service)
-      @config_dir = config_dir
+    def initialize(target_dir, reload_cmd, subnet_service)
+      @config_dir = target_dir
       @reload_cmd = reload_cmd
       @subnet_service = subnet_service
 

@@ -13,14 +13,16 @@ class DHCPDnsmasqProductionWiringTest < Test::Unit::TestCase
 
     @config.load_dependency_injection_wirings(
       @container,
-      :config_dir => '/etc/dnsmasq.conf',
+      :config => '/etc/dnsmasq.conf',
+      :target_dir => '/etc/dnsmasq.d/dhcp',
       :lease_file => '/tmp/dhcp.leases',
-      :reload_cmd => 'systemctl reload dnsmasq')
+      :reload_cmd => 'systemctl reload dnsmasq'
+    )
 
     provider = @container.get_dependency(:dhcp_provider)
 
     assert_not_nil provider
-    assert_equal '/etc/dnsmasq.conf', provider.config_dir
+    assert_equal '/etc/dnsmasq.d/dhcp', provider.config_dir
     assert_equal 'systemctl reload dnsmasq', provider.reload_cmd
   end
 end

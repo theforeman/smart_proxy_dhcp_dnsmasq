@@ -7,9 +7,10 @@ module ::Proxy::DHCP::Dnsmasq
 
     def load_dependency_injection_wirings(container, settings)
       container.dependency :memory_store, ::Proxy::MemoryStore
+
       container.dependency :subnet_service, (lambda do
         ::Proxy::DHCP::Dnsmasq::SubnetService.new(
-          settings[:config_dir], settings[:lease_file],
+          settings[:config], settings[:target_dir], settings[:lease_file],
           container.get_dependency(:memory_store),
           container.get_dependency(:memory_store), container.get_dependency(:memory_store),
           container.get_dependency(:memory_store), container.get_dependency(:memory_store)
@@ -17,7 +18,7 @@ module ::Proxy::DHCP::Dnsmasq
       end)
       container.dependency :dhcp_provider, (lambda do
         Proxy::DHCP::Dnsmasq::Record.new(
-          settings[:config_dir],
+          settings[:target_dir],
           settings[:reload_cmd], container.get_dependency(:subnet_service)
         )
       end)
