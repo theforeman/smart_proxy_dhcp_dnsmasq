@@ -12,6 +12,8 @@ module Proxy::DHCP::Dnsmasq
       @subnet_service = subnet_service
       @optsfile_content = []
 
+      Dir.create @config_dir unless Dir.exist? @config_dir
+
       subnet_service.load!
 
       super('localhost', nil, subnet_service)
@@ -26,7 +28,9 @@ module Proxy::DHCP::Dnsmasq
       tags << ensure_tftpserver(options[:nextServer]) if options[:nextServer]
       tagstring = ",set:#{tags.join(',set:')}" unless tags.empty?
 
-      File.write(File.join(@config_dir, 'dhcphosts', "#{sanitize_string record.mac}.conf"),
+      hostspath = File.join(@config_dir, 'dhcphosts')
+      Dir.create hostspath unless Dir.exist? hostspath
+      File.write(File.join(hostspath, "#{sanitize_string record.mac}.conf"),
                  "#{record.mac}#{tagstring},#{record.ip},#{record.name}\n")
       subnet_service.add_host(record.subnet_address, record)
 
