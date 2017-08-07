@@ -5,6 +5,7 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
   def setup
     @subnet_service = mock
     @subnet_service.expects(:load!).returns(true)
+    Dir.stubs(:exist?).returns(true)
 
     @server = ::Proxy::DHCP::Dnsmasq::Record.new('/etc/dnsmasq.d/', '/bin/true', @subnet_service)
     @server.instance_eval('@optsfile_content = []')

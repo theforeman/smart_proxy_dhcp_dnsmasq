@@ -12,7 +12,7 @@ module Proxy::DHCP::Dnsmasq
       @subnet_service = subnet_service
       @optsfile_content = []
 
-      Dir.create @config_dir unless Dir.exist? @config_dir
+      Dir.mkdir @config_dir unless Dir.exist? @config_dir
 
       subnet_service.load!
 

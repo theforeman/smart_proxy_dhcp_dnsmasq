@@ -11,6 +11,8 @@ module Proxy::DHCP::Dnsmasq
                      :lease_file => '/var/lib/dnsmasq/dhcp.leases',
                      :reload_cmd => 'systemctl reload dnsmasq'
 
+    validate_readable :lease_file
+
     load_classes ::Proxy::DHCP::Dnsmasq::PluginConfiguration
     load_dependency_injection_wirings ::Proxy::DHCP::Dnsmasq::PluginConfiguration
   end

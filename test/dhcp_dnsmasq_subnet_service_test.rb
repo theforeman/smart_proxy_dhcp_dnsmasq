@@ -4,6 +4,7 @@ require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_subnet_service'
 class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
   def setup
     @subnet_service = mock()
+    Dir.stubs(:exist?).returns(true)
   end
 
   def test_initialize
