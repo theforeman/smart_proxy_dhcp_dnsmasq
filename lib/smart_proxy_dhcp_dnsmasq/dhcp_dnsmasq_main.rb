@@ -29,7 +29,7 @@ module Proxy::DHCP::Dnsmasq
       tagstring = ",set:#{tags.join(',set:')}" unless tags.empty?
 
       hostspath = File.join(@config_dir, 'dhcphosts')
-      Dir.create hostspath unless Dir.exist? hostspath
+      Dir.mkdir hostspath unless Dir.exist? hostspath
       File.write(File.join(hostspath, "#{sanitize_string record.mac}.conf"),
                  "#{record.mac}#{tagstring},#{record.ip},#{record.name}\n")
       subnet_service.add_host(record.subnet_address, record)

@@ -113,7 +113,9 @@ module Proxy::DHCP::Dnsmasq
         files += Dir[File.join(path), '*'] if Dir.exist? path
       end
 
+      logger.debug "Starting parse of DHCP reservations from #{files}"
       files.each do |file|
+        logger.debug "  Parsing #{file}..."
         open(file, 'r').each_line do |line|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
@@ -167,7 +169,9 @@ module Proxy::DHCP::Dnsmasq
         end
       end
 
+      logger.debug "Parsing provisioned DHCP reservations from #{@target_dir}"
       Dir[File.join(@target_dir, 'dhcphosts', '*')].each do |file|
+        logger.debug "  Parsing #{file}..."
         open(file, 'r').each_line do |line|
           data = line.split(',')
 
@@ -210,13 +214,15 @@ module Proxy::DHCP::Dnsmasq
       reservations = parse_config_for_dhcp_reservations
       reservations.each do |record|
         if dupe = find_host_by_mac(record.subnet_address, record.mac)
-          delete_host(dupe)
+          logger.debug "Found duplicate #{dupe} when adding #{record}"
+          next
+          # delete_host(dupe)
         end
 
         add_host(record.subnet_address, record)
       end
 
-      leases = [] # load_leases # FIXME: Will cause collisions if added
+      leases = load_leases # FIXME: Will cause collisions if added
       leases.each do |lease|
         if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
           delete_lease(dupe)
