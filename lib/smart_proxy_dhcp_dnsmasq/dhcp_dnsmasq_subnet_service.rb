@@ -50,7 +50,9 @@ module Proxy::DHCP::Dnsmasq
         files += Dir["#{path}/*"] if Dir.exist? path
       end
 
+      logger.debug "Starting parse of DHCP subnets from #{files}"
       files.each do |file|
+        logger.debug "  Parsing #{file}..."
         open(file, 'r').each_line do |line|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
@@ -100,6 +102,8 @@ module Proxy::DHCP::Dnsmasq
         end
       end
 
+      # TODO: Multiple subnets
+      logger.debug "Adding subnet with configuration; #{configuration}"
       @ttl = configuration[:ttl]
       ::Proxy::DHCP::Subnet.new(configuration[:address], configuration[:mask], configuration[:options])
     end
@@ -157,10 +161,11 @@ module Proxy::DHCP::Dnsmasq
       dhcpoptions = {}
 
       dhcpopts_path = File.join(@target_dir, 'dhcpopts.conf')
+      logger.debug "Parsing DHCP options from #{dhcpopts_path}"
       if File.exist? dhcpopts_path
         open(dhcpopts_path, 'r').each_line do |line|
-          data = line.split(',')
-          next unless data.first.start_with? 'tag:'
+          data = line.strip.split(',')
+          next if data.empty? || !data.first.start_with?('tag:')
 
           tag = data.first[4..-1]
           data.shift
@@ -173,18 +178,18 @@ module Proxy::DHCP::Dnsmasq
       Dir[File.join(@target_dir, 'dhcphosts', '*')].each do |file|
         logger.debug "  Parsing #{file}..."
         open(file, 'r').each_line do |line|
-          data = line.split(',')
+          data = line.strip.split(',')
+          next if data.empty? || data.first.start_with?('#')
 
           mac = data.first
           data.shift
 
-          options = {
-            :deletable => true
-          }
+          options = { :deletable => true }
           while data.first.start_with? 'set:'
             tag = data.first[4..-1]
-            value = dhcpoptions[tag]
+            data.shift
 
+            value = dhcpoptions[tag]
             next if value.nil?
 
             options[:nextServer] = value if tag.start_with? 'ns'
@@ -195,11 +200,7 @@ module Proxy::DHCP::Dnsmasq
           subnet = find_subnet(ip)
 
           to_ret[mac] = ::Proxy::DHCP::Reservation.new(
-            name,
-            ip,
-            mac,
-            subnet,
-            options
+            name, ip, mac, subnet, options
           )
         end
       end
@@ -214,23 +215,29 @@ module Proxy::DHCP::Dnsmasq
       reservations = parse_config_for_dhcp_reservations
       reservations.each do |record|
         if dupe = find_host_by_mac(record.subnet_address, record.mac)
-          logger.debug "Found duplicate #{dupe} when adding #{record}"
+          logger.debug "Found duplicate #{dupe} when adding record #{record}, skipping"
           next
           # delete_host(dupe)
         end
 
+        logger.debug "Adding host #{record}"
         add_host(record.subnet_address, record)
       end
 
-      leases = load_leases # FIXME: Will cause collisions if added
+      leases = [] # load_leases # FIXME: Will cause collisions if added
       leases.each do |lease|
         if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
-          delete_lease(dupe)
+          logger.debug "Removing duplicate #{dupe} when adding lease #{lease}, skipping"
+          next
+          # delete_lease(dupe)
         end
         if dupe = find_lease_by_ip(lease.subnet_address, lease.ip)
-          delete_lease(dupe)
+          logger.debug "Removing duplicate #{dupe} when adding lease #{lease}, skipping"
+          next
+          # delete_lease(dupe)
         end
 
+        logger.debug "Adding lease #{lease}"
         add_lease(lease.subnet_address, lease)
       end
     end

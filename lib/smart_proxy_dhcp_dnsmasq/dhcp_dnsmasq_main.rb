@@ -20,6 +20,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def add_record(options = {})
+      logger.debug "Adding record; #{options}"
       record = super(options)
       options = record.options
 
@@ -39,13 +40,14 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def del_record(record)
+      logger.debug "Deleting record; #{record}"
       # TODO: Removal of leases, to prevent DHCP record collisions?
       return record if record.is_a? ::Proxy::DHCP::Lease
 
       path = File.join(@config_dir, 'dhcphosts', "#{sanitize_string record.mac}.conf")
       File.unlink(path) if File.exist? path
 
-      subnet_service.delete_host(record.subnet_address, record)
+      subnet_service.delete_host(record)
 
       try_reload_cmd
       record
@@ -54,6 +56,7 @@ module Proxy::DHCP::Dnsmasq
     private
 
     def try_reload_cmd
+      logger.debug 'Reloading DHCP configuration...'
       raise Proxy::DHCP::Error, 'Failed to reload configuration' \
         unless system(@reload_cmd)
     end
@@ -68,6 +71,7 @@ module Proxy::DHCP::Dnsmasq
 
     def append_optsfile(line)
       path = File.join(@config_dir, 'dhcpopts.conf').freeze
+      logger.debug "Appending #{line} to dhcpopts.conf"
 
       optsfile_content << line
       File.write(path, optsfile_content.join("\n") + "\n")
