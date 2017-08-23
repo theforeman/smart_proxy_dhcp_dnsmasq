@@ -4,4 +4,7 @@ rvm:
   - 2.0.0
   - 2.2.2
   - 2.4.0
+matrix:
+  allowed_failures:
+    rvm: 1.9.3
 sudo: false
