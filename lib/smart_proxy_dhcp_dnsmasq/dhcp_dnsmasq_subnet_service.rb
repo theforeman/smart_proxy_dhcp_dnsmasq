@@ -134,7 +134,7 @@ module Proxy::DHCP::Dnsmasq
               ip,
               mac,
               subnet,
-#             :source_file => file # TODO: Needs to overload the comparison
+              # :source_file => file # TODO: Needs to overload the comparison
             )
           when 'dhcp-boot'
             data = value.split(',')
@@ -155,15 +155,17 @@ module Proxy::DHCP::Dnsmasq
       dhcpoptions = {}
 
       dhcpopts_path = File.join(@target_dir, 'dhcpopts.conf')
-      open(dhcpopts_path, 'r').each_line do |line|
-        data = line.split(',')
-        next unless data.first.start_with? 'tag:'
+      if File.exist? dhcpopts_path
+        open(dhcpopts_path, 'r').each_line do |line|
+          data = line.split(',')
+          next unless data.first.start_with? 'tag:'
 
-        tag = data.first[4..-1]
-        data.shift
+          tag = data.first[4..-1]
+          data.shift
 
-        dhcpoptions[tag] = data.last
-      end if File.exist? dhcpopts_path
+          dhcpoptions[tag] = data.last
+        end
+      end
 
       Dir[File.join(@target_dir, 'dhcphosts', '*')].each do |file|
         open(file, 'r').each_line do |line|
@@ -172,7 +174,9 @@ module Proxy::DHCP::Dnsmasq
           mac = data.first
           data.shift
 
-          options = {}
+          options = {
+            :deletable => true
+          }
           while data.first.start_with? 'set:'
             tag = data.first[4..-1]
             value = dhcpoptions[tag]
@@ -197,9 +201,9 @@ module Proxy::DHCP::Dnsmasq
       end
 
       to_ret.values
-    rescue Exception => e
+    rescue StandardError => e
       logger.error msg = "Unable to parse reservations: #{e}"
-      raise Proxy::DHCP::Error, msg
+      raise Proxy::DHCP::Error, e, msg
     end
 
     def load_subnet_data
@@ -236,8 +240,7 @@ module Proxy::DHCP::Dnsmasq
           hostname, ip, mac, subnet,
           timestamp - (@ttl || 24 * 60 * 60),
           timestamp,
-          'active',
-          deleteable: false
+          'active'
         )
       end
     end

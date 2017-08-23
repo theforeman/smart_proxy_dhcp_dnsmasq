@@ -13,9 +13,11 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
 
   def test_add_record
     subnet = ::Proxy::DHCP::Subnet.new('10.0.0.0', '255.0.0.0')
-    @subnet_service.expects(:find_subnet).with('10.0.0.0').returns(subnet)
-    @subnet_service.expects(:find_hosts_by_ip).returns(nil)
-    @subnet_service.expects(:find_host_by_mac).returns(nil)
+    @subnet_service.stubs(:find_subnet).with('10.0.0.0').returns(subnet)
+    @subnet_service.stubs(:find_hosts_by_ip).returns(nil)
+    @subnet_service.stubs(:find_host_by_mac).returns(nil)
+    @subnet_service.stubs(:find_lease_by_ip).returns(nil)
+    @subnet_service.stubs(:find_lease_by_mac).returns(nil)
 
     File.expects(:write).with(
       '/etc/dnsmasq.d/dhcphosts/00_01_02_03_04_05.conf',
