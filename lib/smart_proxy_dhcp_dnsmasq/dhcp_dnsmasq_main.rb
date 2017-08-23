@@ -53,6 +53,14 @@ module Proxy::DHCP::Dnsmasq
       record
     end
 
+    def find_record_by_mac(subnet_address, mac_address)
+      get_subnet(subnet_address)
+      service.find_host_by_mac(subnet_address, mac_address) ||
+        service.find_host_by_mac(subnet_address, mac_address.downcase) ||
+        service.find_lease_by_mac(subnet_address, mac_address) ||
+        service.find_lease_by_mac(subnet_address, mac_address.downcase)
+    end
+
     private
 
     def try_reload_cmd
@@ -78,7 +86,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def sanitize_string(string)
-      string.gsub(/[^0-9A-Za-z]/, '_')
+      string.downcase.gsub(/[^0-9a-z]/, '_')
     end
 
     def ensure_bootfile(filename)
