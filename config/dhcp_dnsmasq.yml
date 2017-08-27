@@ -5,21 +5,23 @@
 
 # This pluing requires that the following options are set in your dnsmasq
 # configuration;
-#   dhcp-optsfile=<config_dir>/dhcpopts.conf
-#   dhcp-hostsfile=<config_dir>/dhcphosts/
+#   dhcp-optsfile=<target_dir>/dhcpopts.conf
+#   dhcp-hostsfile=<target_dir>/dhcphosts # NB: this line should not end in a slash
 
-# Configuration files to parse, writing any additional entries will be done to
-# the last of the files unless a specific write file is provided;
-#
+# Configuration files and directories to parse
 :config: /etc/dnsmasq.conf
-:target_dir: /etc/dnsmasq.d/dhcp/
+# Directory to write dhcp files into
+:target_dir: /var/lib/foreman-proxy/dhcp/
+# Dnsmasq DHCP lease file location
 :lease_file: /var/lib/dnsmasq/dhcp.leases
+# Command to reload / SIGHUP dnsmasq
 :reload_cmd: systemctl reload dnsmasq
 
 # Example configuration for an OpenWRT router;
 #:config:
 #  - /tmp/etc/dnsmasq.conf
+#  - /tmp/dnsmasq.d/
 #  - /etc/dnsmasq.conf
-#:target_dir: /etc/dnsmasq.d/dhcp/
+#:target_dir: /etc/foreman-proxy/dnsmasq_dhcp/
 #:lease_file: /tmp/dhcp.leases
 #:reload_cmd: /etc/init.d/dnsmasq reload

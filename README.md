@@ -12,8 +12,8 @@ This plugin is compatible with Smart Proxy 1.15 or higher.
 
 You need to add two lines to your dnsmasq configuration to use this plugin;
 ```
-dhcp-optsfile=<config_dir>/dhcpopts.conf
-dhcp-hostsfile=<config_dir>/dhcphosts/
+dhcp-optsfile=<target_dir>/dhcpopts.conf
+dhcp-hostsfile=<target_dir>/dhcphosts
 ```
 
 Dnsmasq will also require write privileges to the configuration file and folder specified.
@@ -26,8 +26,9 @@ To enable this DNS provider, edit `/etc/foreman-proxy/settings.d/dhcp.yml` and s
 
 Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dhcp_dnsmasq.yml` and include:
 
-* `config_dir`: The path to the configuration directory to load, changes will be written to host-specific configuration files inside
-* `lease_file`: The path to the lease file. (*optional if `dhcp-leasefile` is set in one of the config files*)
+* `config`: The path to the configuration directory to load, changes will be written to host-specific configuration files inside
+* `target_dir`: The path of where dhcp files should be written, must have write permissions for the proxy user.
+* `lease_file`: The path to the lease file. (*optional, will be auto-discovered if `dhcp-leasefile` is set in one of the config files*)
 * `reload_cmd`: The command to use for reloading the dnsmasq configuration.
 
 For best results, the write config should point to a file in a dnsmasq `conf-dir` which only the smart-proxy uses.
