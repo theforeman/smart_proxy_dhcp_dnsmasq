@@ -6,8 +6,12 @@ module Proxy::DHCP::Dnsmasq
     plugin :dhcp_dnsmasq, ::Proxy::DHCP::Dnsmasq::VERSION
 
     requires :dhcp, '>= 1.15'
-    default_settings :config_files => [ '/etc/dnsmasq.d/foreman.conf' ],
+    default_settings :config=> '/etc/dnsmasq.conf',
+                     :target_dir => '/var/lib/foreman-proxy/dhcp/',
+                     :lease_file => '/var/lib/dnsmasq/dhcp.leases',
                      :reload_cmd => 'systemctl reload dnsmasq'
+
+    validate_readable :lease_file
 
     load_classes ::Proxy::DHCP::Dnsmasq::PluginConfiguration
     load_dependency_injection_wirings ::Proxy::DHCP::Dnsmasq::PluginConfiguration
