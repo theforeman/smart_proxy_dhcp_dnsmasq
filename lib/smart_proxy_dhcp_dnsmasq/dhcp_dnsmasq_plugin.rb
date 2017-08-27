@@ -7,7 +7,7 @@ module Proxy::DHCP::Dnsmasq
 
     requires :dhcp, '>= 1.15'
     default_settings :config=> '/etc/dnsmasq.conf',
-                     :target_dir => '/etc/dnsmasq.d/dhcp/',
+                     :target_dir => '/var/lib/foreman-proxy/dhcp/',
                      :lease_file => '/var/lib/dnsmasq/dhcp.leases',
                      :reload_cmd => 'systemctl reload dnsmasq'
 
