@@ -245,12 +245,12 @@ module Proxy::DHCP::Dnsmasq
     # Expects subnet_service to have subnet data
     def load_leases
       open(@lease_file, 'r').readlines.map do |line|
-        timestamp, mac, ip, hostname, _client_id = line.split
+        timestamp, mac, ip, _hostname, _client_id = line.split
         timestamp = timestamp.to_i
 
         subnet = find_subnet(ip)
         ::Proxy::DHCP::Lease.new(
-          hostname, ip, mac, subnet,
+          nil, ip, mac, subnet,
           timestamp - (@ttl || 24 * 60 * 60),
           timestamp,
           'active'
