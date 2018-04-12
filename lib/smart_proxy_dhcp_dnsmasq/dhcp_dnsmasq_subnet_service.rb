@@ -217,27 +217,24 @@ module Proxy::DHCP::Dnsmasq
         if dupe = find_host_by_mac(record.subnet_address, record.mac)
           logger.debug "Found duplicate #{dupe} when adding record #{record}, skipping"
           next
-          # delete_host(dupe)
         end
 
-        logger.debug "Adding host #{record}"
+        # logger.debug "Adding host #{record}"
         add_host(record.subnet_address, record)
       end
 
-      leases = [] # load_leases # FIXME: Will cause collisions if added
+      leases = load_leases
       leases.each do |lease|
         if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
-          logger.debug "Removing duplicate #{dupe} when adding lease #{lease}, skipping"
+          logger.debug "Found duplicate #{dupe} by MAC when adding lease #{lease}, skipping"
           next
-          # delete_lease(dupe)
         end
         if dupe = find_lease_by_ip(lease.subnet_address, lease.ip)
-          logger.debug "Removing duplicate #{dupe} when adding lease #{lease}, skipping"
+          logger.debug "Found duplicate #{dupe} by IP when adding lease #{lease}, skipping"
           next
-          # delete_lease(dupe)
         end
 
-        logger.debug "Adding lease #{lease}"
+        # logger.debug "Adding lease #{lease}"
         add_lease(lease.subnet_address, lease)
       end
     end
