@@ -13,6 +13,7 @@ module Proxy::DHCP::Dnsmasq
       @optsfile_content = []
 
       Dir.mkdir @config_dir unless Dir.exist? @config_dir
+      cleanup_optsfile
 
       subnet_service.load!
 
@@ -82,6 +83,22 @@ module Proxy::DHCP::Dnsmasq
       logger.debug "Appending #{line} to dhcpopts.conf"
 
       optsfile_content << line
+      File.write(path, optsfile_content.join("\n") + "\n")
+    end
+
+    def cleanup_optsfile
+      used_tags = []
+      Dir.glob(File.join(@config_dir, 'dhcphosts', '*.conf')) do |file|
+        File.read(file).scan(/set:(.*?),/m) do |tag|
+          used_tags << tag
+        end
+      end
+      used_tags = used_tags.sort.uniq
+
+      @optsfile_content = optsfile_content.select do |line|
+        tag = line[/tag:(.*?),/, 1]
+        used_tags.include? tag
+      end
       File.write(path, optsfile_content.join("\n") + "\n")
     end
 

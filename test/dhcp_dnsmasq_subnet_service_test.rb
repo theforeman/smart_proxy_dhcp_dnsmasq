@@ -21,11 +21,11 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
 
     initializer.expects(:add_subnet).with(subnet)
     initializer.expects(:add_host)
-#    initializer.expects(:add_lease)
+    initializer.expects(:add_lease)
 
     initializer.expects(:parse_config_for_subnet).returns(subnet)
     initializer.expects(:parse_config_for_dhcp_reservations).returns([host])
-#    initializer.expects(:load_leases).returns([lease])
+    initializer.expects(:load_leases).returns([lease])
 #    initializer.expects(:add_watch)
 
     initializer.load!
