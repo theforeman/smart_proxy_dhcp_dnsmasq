@@ -99,7 +99,7 @@ module Proxy::DHCP::Dnsmasq
         tag = line[/tag:(.*?),/, 1]
         used_tags.include? tag
       end
-      File.write(path, optsfile_content.join("\n") + "\n")
+      File.write(File.join(@config_dir, 'dhcpopts.conf'), optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)
