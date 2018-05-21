@@ -13,7 +13,7 @@ module Proxy::DHCP::Dnsmasq
       @optsfile_content = []
 
       Dir.mkdir @config_dir unless Dir.exist? @config_dir
-      cleanup_optsfile
+      cleanup_optsfile if false
 
       subnet_service.load!
 
@@ -97,9 +97,9 @@ module Proxy::DHCP::Dnsmasq
 
       @optsfile_content = optsfile_content.select do |line|
         tag = line[/tag:(.*?),/, 1]
-        used_tags.include? tag
+        used_tags.include?(tag) && !line.empty?
       end
-      File.write(File.join(@config_dir, 'dhcpopts.conf'), optsfile_content.join("\n") + "\n")
+      File.write(path, optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)
