@@ -89,17 +89,15 @@ module Proxy::DHCP::Dnsmasq
     def cleanup_optsfile
       used_tags = []
       Dir.glob(File.join(@config_dir, 'dhcphosts', '*.conf')) do |file|
-        File.read(file).scan(/set:(.*?),/m) do |tag|
-          used_tags << tag
-        end
+        File.read(file).scan(/set:(.*?),/m) { |tag| used_tags << tag }
       end
       used_tags = used_tags.sort.uniq
 
       @optsfile_content = optsfile_content.select do |line|
         tag = line[/tag:(.*?),/, 1]
-        used_tags.include?(tag) && !line.empty?
+        used_tags.include?(tag)
       end
-      File.write(path, optsfile_content.join("\n") + "\n")
+      File.write(File.join(@config_dir, 'dhcpopts.conf'), optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)
