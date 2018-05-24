@@ -13,7 +13,7 @@ module Proxy::DHCP::Dnsmasq
       @optsfile_content = []
 
       Dir.mkdir @config_dir unless Dir.exist? @config_dir
-      cleanup_optsfile if false
+      cleanup_optsfile if true # TODO: Only cleanup occasionally
 
       subnet_service.load!
 
