@@ -21,4 +21,19 @@ module Proxy::DHCP::Dnsmasq
     end
     Tags.new tags[:tags], tags[:sets]
   end
+
+  def self.net_iface?(iface)
+    ifaddr = iface.addr
+    return unless ifaddr.ip?
+
+    if ifaddr.ipv4?
+      return if ifaddr.ipv4_multicast?
+    else
+      return if ifaddr.ipv6_linklocal? ||
+                ifaddr.ipv6_multicast? ||
+                ifaddr.ipv6_sitelocal?
+    end
+
+    true
+  end
 end
