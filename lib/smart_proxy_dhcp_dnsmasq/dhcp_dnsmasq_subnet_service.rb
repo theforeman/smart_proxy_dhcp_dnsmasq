@@ -91,7 +91,7 @@ module Proxy::DHCP::Dnsmasq
 
             next if start_addr.ipv6? # Smart-proxy currently doesn't support IPv6
 
-            logger.warning "Failed to fully parse line #{file}:#{line_nr}: '#{line}', remaining data: #{data.inspect}" unless data.empty?
+            logger.warning "Failed to fully parse line #{file}:#{line_nr}: '#{line}', unparsed data: #{data.inspect}" unless data.empty?
 
             ipv4 = start_addr.ipv4?
             subnet_iface = interfaces.find { |i| (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) && i.name == subnet_iface } if subnet_iface
@@ -146,9 +146,13 @@ module Proxy::DHCP::Dnsmasq
                         (data.first if interfaces.find { |i| i.name == data.first }) ||
                         configuration.keys
 
-            data.shift until data.empty? || /\A\d+\z/ =~ data.first
+            data.shift until data.empty? || /^\d+|option6?:\w+$/ =~ data.first
             next if data.empty?
 
+            unless data.first =~ /^\d+$/
+              logger.warning "Found non-numeric DHCP option on line #{file}:#{line_nr}: '#{line}', skipping."
+              next
+            end
             code = data.shift.to_i
 
             option = ::Proxy::DHCP::Standard.select { |_k, v| v[:code] == code }.first.first
