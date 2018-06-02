@@ -52,7 +52,7 @@ module Proxy::DHCP::Dnsmasq
         files += Dir["#{path}/*"] if Dir.exist? path
       end
 
-      interfaces = Socket.getifaddrs
+      interfaces = Socket.getifaddrs.select { |i| Proxy::DHCP::Dnsmasq.net_iface? i }.sort { |i| i.ifindex }
       available_interfaces = nil
       logger.debug "Starting parse of DHCP subnets from #{files}"
       files.each do |file|
@@ -90,8 +90,12 @@ module Proxy::DHCP::Dnsmasq
 
             range_from = data.shift
             range_to = data.shift
+            ipv4 = IPAddr.new(range_from).ipv4?
+
+            logger.debug "Found subnet #{subnet_id} on #{subnet_iface} (#{interfaces.find { |i| i.name == subnet_iface && (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) }.inspect})"
             mask = data.shift if data.first =~ /^(\d{1,3}\.){3}\d{1,3}$/ || data.first =~ /^(\a+:+)+(\a+)$/
-            mask ||= '255.255.255.0' # TODO: Grab from interface IP
+            mask ||= interfaces.find { |i| i.name == subnet_iface && (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) }.netmask.ip_address
+            mask ||= '255.255.255.0'
             ttl = data.shift if data.first =~ /^\d+[mh]|infinite|deprecated$/
 
             ttl = case ttl[-1]
