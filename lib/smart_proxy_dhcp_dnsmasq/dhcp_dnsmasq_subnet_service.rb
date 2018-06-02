@@ -129,7 +129,9 @@ module Proxy::DHCP::Dnsmasq
             data.merge! \
               interface: subnet_iface ? subnet_iface.name : nil,
               address: IPAddr.new("#{start_addr}/#{mask}").to_s,
+              broadcast: broadcast,
               mask: mask,
+              mode: mode,
               range: [start_addr.to_s, end_addr].compact,
               ttl: ttl
 
@@ -167,7 +169,7 @@ module Proxy::DHCP::Dnsmasq
       end
 
       configuration.each do |id, data|
-        logger.debug "Adding subnet #{id} with configuration; #{data}"
+        logger.debug "Parsed subnet #{id} (#{data[:address]}) with configuration; #{data}"
         subnets << ::Proxy::DHCP::Subnet.new(data[:address], data[:mask], data[:options])
       end
 
