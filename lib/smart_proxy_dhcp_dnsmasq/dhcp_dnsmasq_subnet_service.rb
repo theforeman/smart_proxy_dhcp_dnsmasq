@@ -56,8 +56,8 @@ module Proxy::DHCP::Dnsmasq
       available_interfaces = nil
       logger.debug "Starting parse of DHCP subnets from #{files}"
       files.each do |file|
-        logger.debug "  Parsing #{file}..."
-        open(file, 'r').each_line do |line|
+        logger.debug "Parsing #{file}..."
+        open(file, 'r').each_line.with_index do |line, line_nr|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
 
@@ -65,55 +65,72 @@ module Proxy::DHCP::Dnsmasq
           case option
           when 'interface'
             iface = interfaces.find { |i| i.name == value }
-            logger.debug "Adding DNS interface: #{value} => #{iface.inspect}"
             (available_interfaces ||= []) << iface if iface
           when 'no-dhcp-interface'
-            available_interfaces ||= interfaces
-            available_interfaces.delete_if { |i| i.name == value }
-            logger.debug "Removed DNS interface: #{value}"
+            (available_interfaces ||= interfaces).delete_if { |i| i.name == value }
           when 'dhcp-leasefile'
             next if @lease_file
 
             @lease_file = value
           when 'dhcp-range'
             data = value.split(',')
+
+            # Parse parameters
             tags = Proxy::DHCP::Dnsmasq.parse_tags(data)
+            subnet_iface = data.shift if /^\w+$/ =~ data.first
+            start_addr = IPAddr.new(data.shift)
+            end_addr = data.shift if /^((\d{1,3}\.){3}\d{1,3}|(\a+:+)+(\a+))|(static|constructor:\w+)$/ =~ data.first
+            if start_addr.ipv4?
+              netmask = data.shift if /^(\d{1,3}\.){3}\d{1,3}$/ =~ data.first
+              broadcast = data.shift if /^(\d{1,3}\.){3}\d{1,3}$/ =~ data.first
+            else
+              mode = data.shift if /^([a-z-]+,)*([a-z-]+)$/ =~ data.first
+              prefix_len = data.shift if /^\d+$/ =~ data.first
+            end
+            lease_time = data.shift if data.first =~ /^\d+[mhd]|infinite|deprecated$/
 
-            subnet_id = tags.set ||
-                        (data.first if (available_interfaces || interfaces).find { |i| i.name == data.first }) ||
-                        'default'
+            next if start_addr.ipv6? # Smart-proxy currently doesn't support IPv6
 
-            logger.warning "Found subnet #{subnet_id} multiple times." if configuration.key? subnet_id
+            logger.warning "Failed to fully parse line #{file}:#{line_nr}: '#{line}', remaining data: #{data.inspect}" unless data.empty?
 
-            subnet_iface = data.shift if interfaces.include?(data.first) || /^\w+$/ =~ data.first
-            subnet_iface ||= (available_interfaces || interfaces)[configuration.count].name
+            ipv4 = start_addr.ipv4?
+            subnet_iface = interfaces.find { |i| (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) && i.name == subnet_iface } if subnet_iface
+            subnet_iface ||= interfaces.find do |i|
+              IPAddr.new("#{i.addr.ip_address}/#{i.netmask.ip_address}").include? start_addr
+            end
 
-            range_from = data.shift
-            range_to = data.shift
-            ipv4 = IPAddr.new(range_from).ipv4?
+            # Make sure to always have a name for all subnets
+            subnet_id = subnet_iface.name if subnet_iface
+            subnet_id ||= tags.set
+            subnet_id ||= 'default'
 
-            logger.debug "Found subnet #{subnet_id} on #{subnet_iface} (#{interfaces.find { |i| i.name == subnet_iface && (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) }.inspect})"
-            mask = data.shift if data.first =~ /^(\d{1,3}\.){3}\d{1,3}$/ || data.first =~ /^(\a+:+)+(\a+)$/
-            mask ||= interfaces.find { |i| i.name == subnet_iface && (ipv4 ? i.addr.ipv4? : i.addr.ipv6?) }.netmask.ip_address
-            mask ||= '255.255.255.0'
-            ttl = data.shift if data.first =~ /^\d+[mh]|infinite|deprecated$/
-
-            ttl = case ttl[-1]
+            mask = netmask
+            mask ||= subnet_iface.netmask.ip_address if subnet_iface
+            if ipv4
+              mask ||= '255.0.0.0' if IPAddr.new('10.0.0.0/8').include? start_addr
+              mask ||= '255.255.0.0' if IPAddr.new('172.16.0.0/12').include? start_addr
+              mask ||= '255.255.255.0'
+            else
+              mask ||= prefix_len
+            end
+            ttl = case lease_time[-1]
+                  when 'd'
+                    lease_time[0..-2].to_i * 24 * 60 * 60
                   when 'h'
-                    ttl[0..-2].to_i * 60 * 60
+                    lease_time[0..-2].to_i * 60 * 60
                   when 'm'
-                    ttl[0..-2].to_i * 60
+                    lease_time[0..-2].to_i * 60
                   else
-                    ttl.to_i
-                  end if ttl
+                    lease_time.to_i
+                  end if lease_time
             ttl ||= 1 * 60 * 60 # Default lease time is one hour
 
             data = (configuration[subnet_id] ||= {})
             data.merge! \
-              interface: subnet_iface,
-              address: IPAddr.new("#{range_from}/#{mask}").to_s,
+              interface: subnet_iface ? subnet_iface.name : nil,
+              address: IPAddr.new("#{start_addr}/#{mask}").to_s,
               mask: mask,
-              range: [range_from, range_to],
+              range: [start_addr.to_s, end_addr].compact,
               ttl: ttl
 
             (data[:options] ||= {}).merge! \
@@ -126,8 +143,8 @@ module Proxy::DHCP::Dnsmasq
             tags = Proxy::DHCP::Dnsmasq.parse_tags(data)
 
             subnet_id = (tags.tags.empty? ? nil : tags.tags) ||
-                        (data.first if (available_interfaces || interfaces).find { |i| i.name == data.first }) ||
-                        interfaces[configuration.count].name || 'default'
+                        (data.first if interfaces.find { |i| i.name == data.first }) ||
+                        configuration.keys
 
             data.shift until data.empty? || /\A\d+\z/ =~ data.first
             next if data.empty?
