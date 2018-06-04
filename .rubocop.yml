@@ -1,0 +1,21 @@
+Metrics/ClassLength:
+  Exclude:
+    - 'test/**/*'
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 140
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Max: 8
+
+Style/ClassAndModuleChildren:
+  Enabled: false
