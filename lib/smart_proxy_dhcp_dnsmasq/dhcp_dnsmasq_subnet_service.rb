@@ -43,7 +43,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def parse_config_for_subnet
-      configuration = {}
+      configuration = { options: {} }
       files = []
       @config_paths.each do |path|
         files << path if File.exist? path
@@ -87,8 +87,6 @@ module Proxy::DHCP::Dnsmasq
               ttl: ttl
           when 'dhcp-option'
             data = value.split(',')
-
-            configuration[:options] = {} unless configuration.key? :options
 
             data.shift until data.empty? || /\A\d+\z/ === data.first
             next if data.empty?
