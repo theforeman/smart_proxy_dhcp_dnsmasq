@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.license     = 'GPL-3.0'
   s.authors     = ['Alexander Olofsson']
   s.email       = ['alexander.olofsson@liu.se']
-  s.homepage    = 'https://github.com/ace13/smart_proxy_dhcp_dnsmasq'
+  s.homepage    = 'https://github.com/theforeman/smart_proxy_dhcp_dnsmasq'
 
   s.summary     = "dnsmasq DHCP provider plugin for Foreman's smart proxy"
   s.description = "dnamasq DHCP provider plugin for Foreman's smart proxy"
