@@ -1,5 +1,5 @@
 require 'ipaddr'
-#require 'rb-inotify'
+require 'rb-inotify'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/subnet_service'
 
@@ -7,6 +7,9 @@ module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
     include Proxy::Log
 
+    OPTSFILE_CLEANUP_INTERVAL = 900 # 15 minutes
+
+    attr_accessor :last_cleanup
     attr_reader :config_dir, :lease_file
 
     def initialize(config, target_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
@@ -18,28 +21,52 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def load!
+      return true if subnets.any?
+
       add_subnet(parse_config_for_subnet)
       load_subnet_data
-      #add_watch # TODO
 
       true
     end
 
-    def add_watch
-      # TODO: Add proper inotify listener for configs
+    def watch_leases
+      logger.info "Watching leases in file #{lease_file}"
       @inotify = INotify::Notifier.new
       @inotify.watch(File.dirname(lease_file), :modify, :moved_to) do |ev|
         next unless ev.absolute_name == lease_file
 
         leases = load_leases
 
-        # FIXME: Proper method for this
         m.synchronize do
           leases_by_ip.clear
           leases_by_mac.clear
+          leases.each do |record|
+            subnet_address = record.subnet
+            leases_by_ip[subnet_address, record.ip] = record
+            leases_by_mac[subnet_address, record.mac] = record
+          end
         end
-        leases.each { |l| add_lease(l.subnet_address, l) }
       end
+
+      @inotify.run
+   rescue INotify::QueueOverflowError => e
+      logger.warn "Queue overflow occured when monitoring #{lease_file}, restarting monitoring", e
+      sleep 60
+      retry
+    rescue Exception => e
+      logger.error "Error occured when monitoring #{lease_file}", e
+    end
+
+    def start
+      Thread.new { watch_leases }
+    end
+
+    def stop
+      @inotify.stop unless @inotify.nil?
+    end
+
+    def cleanup_time?
+      Time.now - (@last_cleanup ||= Time.now) > OPTSFILE_CLEANUP_INTERVAL
     end
 
     def parse_config_for_subnet

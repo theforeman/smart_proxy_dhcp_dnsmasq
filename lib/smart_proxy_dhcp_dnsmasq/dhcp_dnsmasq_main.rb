@@ -3,21 +3,21 @@ require 'tempfile'
 require 'dhcp_common/server'
 
 module Proxy::DHCP::Dnsmasq
-  class Record < ::Proxy::DHCP::Server
+  class Provider < ::Proxy::DHCP::Server
     attr_reader :config_dir, :reload_cmd, :subnet_service
 
-    def initialize(target_dir, reload_cmd, subnet_service)
+    def initialize(target_dir, reload_cmd, subnet_service, free_ips)
       @config_dir = target_dir
       @reload_cmd = reload_cmd
       @subnet_service = subnet_service
       @optsfile_content = []
 
       Dir.mkdir @config_dir unless Dir.exist? @config_dir
-      cleanup_optsfile if true # TODO: Only cleanup occasionally
+      cleanup_optsfile if subnet_service.cleanup_time?
 
       subnet_service.load!
 
-      super('localhost', nil, subnet_service)
+      super('localhost', nil, subnet_service, free_ips)
     end
 
     def add_record(options = {})
@@ -87,6 +87,8 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def cleanup_optsfile
+      subnet_service.last_cleanup = Time.now
+
       used_tags = []
       Dir.glob(File.join(@config_dir, 'dhcphosts', '*.conf')) do |file|
         File.read(file).scan(/set:(.*?),/m) { |tag| used_tags << tag }

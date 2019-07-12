@@ -1,5 +1,5 @@
-require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_configuration'
 require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_version'
+require 'smart_proxy_dhcp_dnsmasq/plugin_configuration'
 
 module Proxy::DHCP::Dnsmasq
   class Plugin < ::Proxy::Provider
