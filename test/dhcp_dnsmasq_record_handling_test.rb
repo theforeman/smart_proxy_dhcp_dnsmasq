@@ -3,12 +3,15 @@ require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_main'
 
 class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
   def setup
+    @free_ips = mock
     @subnet_service = mock
     @subnet_service.expects(:load!).returns(true)
+    @subnet_service.expects(:cleanup_time?).returns(false)
     Dir.stubs(:exist?).returns(true)
-    Proxy::DHCP::Dnsmasq::Record.any_instance.stubs(:cleanup_optsfile)
+    Proxy::DHCP::Dnsmasq::Provider.any_instance.stubs(:cleanup_optsfile)
+    Proxy::LogBuffer::Decorator.any_instance.stubs(:add)
 
-    @server = ::Proxy::DHCP::Dnsmasq::Record.new('/etc/dnsmasq.d/', '/bin/true', @subnet_service)
+    @server = ::Proxy::DHCP::Dnsmasq::Provider.new('/etc/dnsmasq.d/', '/bin/true', @subnet_service, @free_ips)
     @server.instance_eval('@optsfile_content = []')
   end
 
