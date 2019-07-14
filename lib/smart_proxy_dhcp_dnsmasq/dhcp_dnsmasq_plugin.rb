@@ -15,5 +15,7 @@ module Proxy::DHCP::Dnsmasq
 
     load_classes ::Proxy::DHCP::Dnsmasq::PluginConfiguration
     load_dependency_injection_wirings ::Proxy::DHCP::Dnsmasq::PluginConfiguration
+
+    start_services :unused_ips, :subnet_service
   end
 end
