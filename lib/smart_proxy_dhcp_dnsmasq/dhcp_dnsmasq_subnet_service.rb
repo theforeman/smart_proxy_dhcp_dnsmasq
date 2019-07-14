@@ -1,4 +1,5 @@
 require 'ipaddr'
+require 'pathname'
 require 'rb-inotify'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/subnet_service'
@@ -16,6 +17,9 @@ module Proxy::DHCP::Dnsmasq
       @config_paths = [config].flatten
       @target_dir = target_dir
       @lease_file = lease_file
+
+      # Must be an absolute path for the inotify watch to succeed at the moment
+      @lease_file = File.expand_path(@lease_file) unless (Pathname.new @lease_file).absolute?
 
       super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
     end
