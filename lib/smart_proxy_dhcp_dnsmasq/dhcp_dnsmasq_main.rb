@@ -73,9 +73,12 @@ module Proxy::DHCP::Dnsmasq
     def optsfile_content
       path = File.join(@config_dir, 'dhcpopts.conf').freeze
 
-      @optsfile_content = File.open(path).readlines.map(&:chomp).reject(&:empty?) \
-        if File.exist?(path) && @optsfile_content.empty?
-      @optsfile_content
+      return @optsfile_content unless @optsfile_content.empty?
+      return (@optsfile_content ||= []) unless File.exist?(path)
+
+      @optsfile_content = File.open(path) do |file|
+        file.readlines.map(&:chomp).reject(&:empty?).compact
+      end
     end
 
     def append_optsfile(line)
