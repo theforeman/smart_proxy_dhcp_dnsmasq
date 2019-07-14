@@ -66,8 +66,7 @@ module Proxy::DHCP::Dnsmasq
 
     def try_reload_cmd
       logger.debug 'Reloading DHCP configuration...'
-      raise Proxy::DHCP::Error, 'Failed to reload configuration' \
-        unless system(@reload_cmd)
+      raise Proxy::DHCP::Error, 'Failed to reload configuration' unless system(@reload_cmd)
     end
 
     def optsfile_content
