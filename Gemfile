@@ -6,6 +6,7 @@ gem 'rb-inotify'
 group :development do
   gem 'rake'
   gem 'test-unit'
+  gem 'simplecov'
 
   if RUBY_VERSION < '2.2.2'
     gem 'rack-test', '~> 0.7.0'
