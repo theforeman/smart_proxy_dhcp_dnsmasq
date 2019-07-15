@@ -101,7 +101,7 @@ module Proxy::DHCP::Dnsmasq
 
       used_tags = []
       Dir.glob(File.join(@config_dir, 'dhcphosts', '*.conf')) do |file|
-        File.read(file).scan(/set:(.*?),/m) { |tag| used_tags << tag }
+        File.read(file).scan(/set:(.*?),/m) { |tag| used_tags += tag }
       end
       used_tags = used_tags.sort.uniq
 
