@@ -55,4 +55,18 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
 
     @server.del_record(host)
   end
+
+  def test_optsfile_reading
+    @server.stubs(:optsfile_path).returns 'test/fixtures/dhcpopts.conf'
+
+    assert_equal %w[
+      tag:bf_pxelinux_0,option:bootfile-name,pxelinux.0
+      tag:bf_pxelinux_1,option:bootfile-name,pxelinux.1
+      tag:bf_pxelinux_2,option:bootfile-name,pxelinux.2
+      tag:bf_pxelinux_3,option:bootfile-name,pxelinux.3
+      tag:bf_pxelinux_4,option:bootfile-name,pxelinux.4
+      tag:ns_tftp_server,option:tftp-server,tftp.server
+      tag:ns_tftp_server_local,option:tftp-server,tftp.server.local
+    ], @server.send(:optsfile_content)
+  end
 end

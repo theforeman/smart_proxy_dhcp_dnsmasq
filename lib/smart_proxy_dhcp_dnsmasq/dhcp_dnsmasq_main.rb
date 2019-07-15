@@ -80,7 +80,11 @@ module Proxy::DHCP::Dnsmasq
       return (@optsfile_content ||= []) unless File.exist?(path)
 
       @optsfile_content = File.open(path) do |file|
-        file.readlines.map(&:chomp).reject(&:empty?).compact
+        file.readlines
+            .map(&:chomp)
+            .reject(&:empty?)
+            .sort
+            .uniq.compact
       end
     end
 
