@@ -64,13 +64,17 @@ module Proxy::DHCP::Dnsmasq
 
     private
 
+    def optsfile_path
+      @optsfile_path ||= File.join(@config_dir, 'dhcpopts.conf').freeze
+    end
+
     def try_reload_cmd
       logger.debug 'Reloading DHCP configuration...'
       raise Proxy::DHCP::Error, 'Failed to reload configuration' unless system(@reload_cmd)
     end
 
     def optsfile_content
-      path = File.join(@config_dir, 'dhcpopts.conf').freeze
+      path = optsfile_path
 
       return @optsfile_content unless @optsfile_content.empty?
       return (@optsfile_content ||= []) unless File.exist?(path)
@@ -81,7 +85,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def append_optsfile(line)
-      path = File.join(@config_dir, 'dhcpopts.conf').freeze
+      path = optsfile_path
       logger.debug "Appending #{line} to dhcpopts.conf"
 
       optsfile_content << line
@@ -101,7 +105,8 @@ module Proxy::DHCP::Dnsmasq
         tag = line[/tag:(.*?),/, 1]
         used_tags.include?(tag)
       end
-      File.write(File.join(@config_dir, 'dhcpopts.conf'), optsfile_content.join("\n") + "\n")
+      
+      File.write(optsfile_path, optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)
