@@ -44,8 +44,10 @@ module Proxy::DHCP::Dnsmasq
         m.synchronize do
           leases_by_ip.clear
           leases_by_mac.clear
+
           leases.each do |record|
-            subnet_address = record.subnet
+            subnet_address = record.subnet_address
+
             leases_by_ip[subnet_address, record.ip] = record
             leases_by_mac[subnet_address, record.mac] = record
           end
