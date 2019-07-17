@@ -25,6 +25,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def load!
+      # TODO: Refresh data if outdated
       return true if subnets.any?
 
       add_subnet(parse_config_for_subnet)
