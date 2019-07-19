@@ -42,6 +42,9 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
     assert service.load!
 
     subnet = service.subnets.first.last
+    assert_not_nil subnet
+    assert_equal '192.168.0.0', subnet.network
+    assert_equal '255.255.255.0', subnet.netmask
     assert_equal IPAddr.new('192.168.0.0/24'), subnet.ipaddr
     assert_equal ['192.168.0.200', '192.168.0.223'], subnet.options[:range]
     assert_equal ['192.168.0.1'], subnet.options[:domain_name_servers]
@@ -51,6 +54,17 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
     # 1 in dhcphosts/
     assert_equal 4, service.reservations_by_name.values.count
 
+    reservation = service.find_host_by_hostname('host1')
+    assert_not_nil reservation
+    assert_equal '00:11:22:33:44:55', reservation.mac
+    assert_equal 'pxelinux.0', reservation.options[:filename]
+    assert_equal '192.168.0.2', reservation.options[:nextServer]
+
     assert_equal 15, service.leases_by_ip.values.count
+
+    lease = service.find_lease_by_ip('192.168.0.0', '192.168.0.3')
+    assert_not_nil lease
+    assert_equal '44:fa:23:05:1b:8b', lease.mac
+    assert_equal 'active', lease.state
   end
 end

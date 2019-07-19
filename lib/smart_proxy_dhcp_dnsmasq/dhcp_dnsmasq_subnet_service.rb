@@ -192,8 +192,8 @@ module Proxy::DHCP::Dnsmasq
 
               file, server = data
 
-              to_ret[mac].options[:nextServer] = file
-              to_ret[mac].options[:filename] = server
+              to_ret[mac].options[:nextServer] = server
+              to_ret[mac].options[:filename] = file
             end
           end
         end
