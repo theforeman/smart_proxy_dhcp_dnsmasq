@@ -80,8 +80,11 @@ module Proxy::DHCP::Dnsmasq
       configuration = { options: {} }
       files = []
       @config_paths.each do |path|
-        files << path if File.exist? path
-        files += Dir["#{path}/*"] if Dir.exist? path
+        if File.directory? path
+          files += Dir[File.join(path, '*')]
+        else
+          files << path
+        end
       end
 
       logger.debug "Starting parse of DHCP subnets from #{files}"
@@ -117,8 +120,9 @@ module Proxy::DHCP::Dnsmasq
             configuration.merge! \
               address: IPAddr.new("#{range_from}/#{mask}").to_s,
               mask: mask,
-              range: [range_from, range_to],
               ttl: ttl
+
+            configuration[:options][:range] = [range_from, range_to]
           when 'dhcp-option'
             data = value.split(',')
 
@@ -144,9 +148,13 @@ module Proxy::DHCP::Dnsmasq
     def parse_config_for_dhcp_reservations
       to_ret = {}
       files = []
+
       @config_paths.each do |path|
-        files << path if File.exist? path
-        files += Dir[File.join(path), '*'] if Dir.exist? path
+        if File.directory? path
+          files += Dir[File.join(path, '*')] 
+        else
+          files << path
+        end
       end
 
       logger.debug "Starting parse of DHCP reservations from #{files}"

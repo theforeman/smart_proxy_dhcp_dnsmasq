@@ -30,4 +30,27 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
 
     initializer.load!
   end
+
+  def test_load_fixtures
+    service = Proxy::DHCP::Dnsmasq::SubnetService.new(
+      'test/fixtures/config/dnsmasq.conf', 'test/fixtures/config/dhcp', 'test/fixtures/config/dhcp.leases',
+      ::Proxy::MemoryStore.new, ::Proxy::MemoryStore.new,
+      ::Proxy::MemoryStore.new, ::Proxy::MemoryStore.new,
+      ::Proxy::MemoryStore.new
+    )
+
+    assert service.load!
+
+    subnet = service.subnets.first.last
+    assert_equal IPAddr.new('192.168.0.0/24'), subnet.ipaddr
+    assert_equal ['192.168.0.200', '192.168.0.223'], subnet.options[:range]
+    assert_equal ['192.168.0.1'], subnet.options[:domain_name_servers]
+    assert_equal '192.168.0.1-192.168.0.254', subnet.range
+
+    # 3 in dnsmasq.conf
+    # 1 in dhcphosts/
+    assert_equal 4, service.reservations_by_name.values.count
+
+    assert_equal 15, service.leases_by_ip.values.count
+  end
 end
