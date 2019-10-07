@@ -3,21 +3,21 @@ require 'tempfile'
 require 'dhcp_common/server'
 
 module Proxy::DHCP::Dnsmasq
-  class Record < ::Proxy::DHCP::Server
+  class Provider < ::Proxy::DHCP::Server
     attr_reader :config_dir, :reload_cmd, :subnet_service
 
-    def initialize(target_dir, reload_cmd, subnet_service)
+    def initialize(target_dir, reload_cmd, subnet_service, free_ips)
       @config_dir = target_dir
       @reload_cmd = reload_cmd
       @subnet_service = subnet_service
       @optsfile_content = []
 
       Dir.mkdir @config_dir unless Dir.exist? @config_dir
-      cleanup_optsfile if true # TODO: Only cleanup occasionally
+      cleanup_optsfile if subnet_service.cleanup_time?
 
       subnet_service.load!
 
-      super('localhost', nil, subnet_service)
+      super('localhost', nil, subnet_service, free_ips)
     end
 
     def add_record(options = {})
@@ -64,22 +64,32 @@ module Proxy::DHCP::Dnsmasq
 
     private
 
+    def optsfile_path
+      @optsfile_path ||= File.join(@config_dir, 'dhcpopts.conf').freeze
+    end
+
     def try_reload_cmd
       logger.debug 'Reloading DHCP configuration...'
-      raise Proxy::DHCP::Error, 'Failed to reload configuration' \
-        unless system(@reload_cmd)
+      raise Proxy::DHCP::Error, 'Failed to reload configuration' unless system(@reload_cmd)
     end
 
     def optsfile_content
-      path = File.join(@config_dir, 'dhcpopts.conf').freeze
+      path = optsfile_path
 
-      @optsfile_content = File.open(path).readlines.map(&:chomp).reject(&:empty?) \
-        if File.exist?(path) && @optsfile_content.empty?
-      @optsfile_content
+      return @optsfile_content unless @optsfile_content.empty?
+      return (@optsfile_content ||= []) unless File.exist?(path)
+
+      @optsfile_content = File.open(path) do |file|
+        file.readlines
+            .map(&:chomp)
+            .reject(&:empty?)
+            .sort
+            .uniq.compact
+      end
     end
 
     def append_optsfile(line)
-      path = File.join(@config_dir, 'dhcpopts.conf').freeze
+      path = optsfile_path
       logger.debug "Appending #{line} to dhcpopts.conf"
 
       optsfile_content << line
@@ -87,9 +97,11 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def cleanup_optsfile
+      subnet_service.last_cleanup = Time.now
+
       used_tags = []
       Dir.glob(File.join(@config_dir, 'dhcphosts', '*.conf')) do |file|
-        File.read(file).scan(/set:(.*?),/m) { |tag| used_tags << tag }
+        File.read(file).scan(/set:(.*?),/m) { |tag| used_tags += tag }
       end
       used_tags = used_tags.sort.uniq
 
@@ -97,7 +109,8 @@ module Proxy::DHCP::Dnsmasq
         tag = line[/tag:(.*?),/, 1]
         used_tags.include?(tag)
       end
-      File.write(File.join(@config_dir, 'dhcpopts.conf'), optsfile_content.join("\n") + "\n")
+      
+      File.write(optsfile_path, optsfile_content.join("\n") + "\n")
     end
 
     def sanitize_string(string)

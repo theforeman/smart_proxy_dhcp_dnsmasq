@@ -1,0 +1,10 @@
+AllCops:
+  TargetRubyVersion: 2.0
+
+Metrics:
+  Enabled: false
+
+# Don't enforce documentation
+Style/Documentation:
+  Enabled: false
+

@@ -1,6 +1,6 @@
 require 'test_helper'
-require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_configuration'
 require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_plugin'
+require 'smart_proxy_dhcp_dnsmasq/plugin_configuration'
 
 class DnsDnsmasqDefaultSettingsTest < Test::Unit::TestCase
   def test_default_settings

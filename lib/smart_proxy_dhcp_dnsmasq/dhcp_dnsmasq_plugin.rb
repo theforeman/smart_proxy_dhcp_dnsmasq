@@ -1,5 +1,5 @@
-require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_configuration'
 require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_version'
+require 'smart_proxy_dhcp_dnsmasq/plugin_configuration'
 
 module Proxy::DHCP::Dnsmasq
   class Plugin < ::Proxy::Provider
@@ -15,5 +15,7 @@ module Proxy::DHCP::Dnsmasq
 
     load_classes ::Proxy::DHCP::Dnsmasq::PluginConfiguration
     load_dependency_injection_wirings ::Proxy::DHCP::Dnsmasq::PluginConfiguration
+
+    start_services :unused_ips, :subnet_service
   end
 end

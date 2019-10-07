@@ -1,5 +1,6 @@
 require 'ipaddr'
-#require 'rb-inotify'
+require 'pathname'
+require 'rb-inotify'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/subnet_service'
 
@@ -7,6 +8,9 @@ module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
     include Proxy::Log
 
+    OPTSFILE_CLEANUP_INTERVAL = 900 # 15 minutes
+
+    attr_accessor :last_cleanup
     attr_reader :config_dir, :lease_file
 
     def initialize(config, target_dir, lease_file, leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
@@ -14,40 +18,73 @@ module Proxy::DHCP::Dnsmasq
       @target_dir = target_dir
       @lease_file = lease_file
 
+      # Must be an absolute path for the inotify watch to succeed at the moment
+      @lease_file = File.expand_path(@lease_file) unless (Pathname.new @lease_file).absolute?
+
       super(leases_by_ip, leases_by_mac, reservations_by_ip, reservations_by_mac, reservations_by_name)
     end
 
     def load!
+      # TODO: Refresh data if outdated
+      return true if subnets.any?
+
       add_subnet(parse_config_for_subnet)
       load_subnet_data
-      #add_watch # TODO
 
       true
     end
 
-    def add_watch
-      # TODO: Add proper inotify listener for configs
+    def watch_leases
+      logger.info "Watching leases in file #{lease_file}"
       @inotify = INotify::Notifier.new
       @inotify.watch(File.dirname(lease_file), :modify, :moved_to) do |ev|
         next unless ev.absolute_name == lease_file
 
         leases = load_leases
 
-        # FIXME: Proper method for this
         m.synchronize do
           leases_by_ip.clear
           leases_by_mac.clear
+
+          leases.each do |record|
+            subnet_address = record.subnet_address
+
+            leases_by_ip[subnet_address, record.ip] = record
+            leases_by_mac[subnet_address, record.mac] = record
+          end
         end
-        leases.each { |l| add_lease(l.subnet_address, l) }
       end
+
+      @inotify.run
+   rescue INotify::QueueOverflowError => e
+      logger.warn "Queue overflow occured when monitoring #{lease_file}, restarting monitoring", e
+      sleep 60
+      retry
+    rescue Exception => e
+      logger.error "Error occured when monitoring #{lease_file}", e
+    end
+
+    def start
+      Thread.new { watch_leases }
+    end
+
+    def stop
+      @inotify.stop unless @inotify.nil?
+    end
+
+    def cleanup_time?
+      Time.now - (@last_cleanup ||= Time.now) > OPTSFILE_CLEANUP_INTERVAL
     end
 
     def parse_config_for_subnet
       configuration = { options: {} }
       files = []
       @config_paths.each do |path|
-        files << path if File.exist? path
-        files += Dir["#{path}/*"] if Dir.exist? path
+        if File.directory? path
+          files += Dir[File.join(path, '*')]
+        else
+          files << path
+        end
       end
 
       logger.debug "Starting parse of DHCP subnets from #{files}"
@@ -83,8 +120,9 @@ module Proxy::DHCP::Dnsmasq
             configuration.merge! \
               address: IPAddr.new("#{range_from}/#{mask}").to_s,
               mask: mask,
-              range: [range_from, range_to],
               ttl: ttl
+
+            configuration[:options][:range] = [range_from, range_to]
           when 'dhcp-option'
             data = value.split(',')
 
@@ -110,9 +148,13 @@ module Proxy::DHCP::Dnsmasq
     def parse_config_for_dhcp_reservations
       to_ret = {}
       files = []
+
       @config_paths.each do |path|
-        files << path if File.exist? path
-        files += Dir[File.join(path), '*'] if Dir.exist? path
+        if File.directory? path
+          files += Dir[File.join(path, '*')] 
+        else
+          files << path
+        end
       end
 
       logger.debug "Starting parse of DHCP reservations from #{files}"
@@ -150,8 +192,8 @@ module Proxy::DHCP::Dnsmasq
 
               file, server = data
 
-              to_ret[mac].options[:nextServer] = file
-              to_ret[mac].options[:filename] = server
+              to_ret[mac].options[:nextServer] = server
+              to_ret[mac].options[:filename] = file
             end
           end
         end
