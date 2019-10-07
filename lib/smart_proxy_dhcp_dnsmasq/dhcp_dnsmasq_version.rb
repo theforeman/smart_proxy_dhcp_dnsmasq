@@ -3,7 +3,7 @@
 module Proxy
   module DHCP
     module Dnsmasq
-      VERSION = '0.7'.freeze
+      VERSION = '0.7'
     end
   end
 end

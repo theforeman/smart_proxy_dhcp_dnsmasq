@@ -14,7 +14,7 @@ class DHCPDnsmasqRecordHandlingTest < Test::Unit::TestCase
     Proxy::LogBuffer::Decorator.any_instance.stubs(:add)
 
     @server = ::Proxy::DHCP::Dnsmasq::Provider.new('/etc/dnsmasq.d/', '/bin/true', @subnet_service, @free_ips)
-    @server.instance_eval('@optsfile_content = []')
+    @server.instance_eval('@optsfile_content = []', __FILE__, __LINE__)
   end
 
   def test_add_record

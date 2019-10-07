@@ -58,11 +58,11 @@ module Proxy::DHCP::Dnsmasq
       end
 
       @inotify.run
-   rescue INotify::QueueOverflowError => e
+    rescue INotify::QueueOverflowError => e
       logger.warn "Queue overflow occured when monitoring #{lease_file}, restarting monitoring", e
       sleep 60
       retry
-    rescue Exception => e
+    rescue StandardError => e
       logger.error "Error occured when monitoring #{lease_file}", e
     end
 
@@ -71,7 +71,7 @@ module Proxy::DHCP::Dnsmasq
     end
 
     def stop
-      @inotify.stop unless @inotify.nil?
+      @inotify&.stop
     end
 
     def cleanup_time?
@@ -92,7 +92,7 @@ module Proxy::DHCP::Dnsmasq
       logger.debug "Starting parse of DHCP subnets from #{files}"
       files.each do |file|
         logger.debug "  Parsing #{file}..."
-        open(file, 'r').each_line do |line|
+        File.open(file, 'r').each_line do |line|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
 
@@ -128,7 +128,7 @@ module Proxy::DHCP::Dnsmasq
           when 'dhcp-option'
             data = value.split(',')
 
-            data.shift until data.empty? || /\A\d+\z/ === data.first
+            data.shift until data.empty? || /\A\d+\z/ =~ data.first
             next if data.empty?
 
             code = data.shift.to_i
@@ -153,7 +153,7 @@ module Proxy::DHCP::Dnsmasq
 
       @config_paths.each do |path|
         if File.directory? path
-          files += Dir[File.join(path, '*')] 
+          files += Dir[File.join(path, '*')]
         else
           files << path
         end
@@ -162,7 +162,7 @@ module Proxy::DHCP::Dnsmasq
       logger.debug "Starting parse of DHCP reservations from #{files}"
       files.each do |file|
         logger.debug "  Parsing #{file}..."
-        open(file, 'r').each_line do |line|
+        File.open(file, 'r').each_line do |line|
           line.strip!
           next if line.empty? || line.start_with?('#') || !line.include?('=')
 
@@ -181,7 +181,7 @@ module Proxy::DHCP::Dnsmasq
               hostname,
               ip,
               mac,
-              subnet,
+              subnet
               # :source_file => file # TODO: Needs to overload the comparison
             )
           when 'dhcp-boot'
@@ -205,7 +205,7 @@ module Proxy::DHCP::Dnsmasq
       dhcpopts_path = File.join(@target_dir, 'dhcpopts.conf')
       logger.debug "Parsing DHCP options from #{dhcpopts_path}"
       if File.exist? dhcpopts_path
-        open(dhcpopts_path, 'r').each_line do |line|
+        File.open(dhcpopts_path, 'r').each_line do |line|
           data = line.strip.split(',')
           next if data.empty? || !data.first.start_with?('tag:')
 
@@ -219,7 +219,7 @@ module Proxy::DHCP::Dnsmasq
       logger.debug "Parsing provisioned DHCP reservations from #{@target_dir}"
       Dir[File.join(@target_dir, 'dhcphosts', '*')].each do |file|
         logger.debug "  Parsing #{file}..."
-        open(file, 'r').each_line do |line|
+        File.open(file, 'r').each_line do |line|
           data = line.strip.split(',')
           next if data.empty? || data.first.start_with?('#')
 
@@ -256,7 +256,7 @@ module Proxy::DHCP::Dnsmasq
     def load_subnet_data
       reservations = parse_config_for_dhcp_reservations
       reservations.each do |record|
-        if dupe = find_host_by_mac(record.subnet_address, record.mac)
+        if (dupe = find_host_by_mac(record.subnet_address, record.mac))
           logger.debug "Found duplicate #{dupe} when adding record #{record}, skipping"
           next
         end
@@ -267,11 +267,11 @@ module Proxy::DHCP::Dnsmasq
 
       leases = load_leases
       leases.each do |lease|
-        if dupe = find_lease_by_mac(lease.subnet_address, lease.mac)
+        if (dupe = find_lease_by_mac(lease.subnet_address, lease.mac))
           logger.debug "Found duplicate #{dupe} by MAC when adding lease #{lease}, skipping"
           next
         end
-        if dupe = find_lease_by_ip(lease.subnet_address, lease.ip)
+        if (dupe = find_lease_by_ip(lease.subnet_address, lease.ip))
           logger.debug "Found duplicate #{dupe} by IP when adding lease #{lease}, skipping"
           next
         end
@@ -285,7 +285,7 @@ module Proxy::DHCP::Dnsmasq
     def load_leases
       raise 'No subnets configured' unless subnets.any?
 
-      open(@lease_file, 'r').readlines.map do |line|
+      File.open(@lease_file, 'r').readlines.map do |line|
         timestamp, mac, ip, _hostname, _client_id = line.split
         timestamp = timestamp.to_i
 
@@ -298,7 +298,7 @@ module Proxy::DHCP::Dnsmasq
         )
       end.compact
     rescue StandardError => e
-      logger.error msg = "Unable to load leases: #{e}"
+      logger.error 'Unable to load leases', e
       []
     end
   end
