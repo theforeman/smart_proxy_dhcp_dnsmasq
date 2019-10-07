@@ -4,10 +4,13 @@ AllCops:
 Metrics:
   Enabled: false
 
+# Broken due to ruby version checks in Gemfile
+Bundler/DuplicatedGem:
+  Enabled: false
+
 # Don't enforce documentation
 Style/Documentation:
   Enabled: false
 
-# Broken due to ruby version checks in Gemfile
-Bundler/DuplicatedGem:
+Style/ClassAndModuleChildren:
   Enabled: false
