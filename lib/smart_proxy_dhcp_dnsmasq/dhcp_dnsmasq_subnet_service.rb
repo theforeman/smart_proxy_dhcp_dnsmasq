@@ -281,6 +281,8 @@ module Proxy::DHCP::Dnsmasq
 
     # Expects subnet_service to have subnet data
     def load_leases
+      raise 'No subnets configured' unless subnets.any?
+
       open(@lease_file, 'r').readlines.map do |line|
         timestamp, mac, ip, _hostname, _client_id = line.split
         timestamp = timestamp.to_i
@@ -292,7 +294,10 @@ module Proxy::DHCP::Dnsmasq
           timestamp,
           'active'
         )
-      end
+      end.compact
+    rescue StandardError => e
+      logger.error msg = "Unable to load leases: #{e}"
+      []
     end
   end
 end
