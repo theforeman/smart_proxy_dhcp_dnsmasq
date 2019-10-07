@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/free_ips'
@@ -17,10 +19,10 @@ class DHCPDnsmasqProductionWiringTest < Test::Unit::TestCase
 
     @config.load_dependency_injection_wirings(
       @container,
-      :config => '/etc/dnsmasq.conf',
-      :target_dir => '/etc/dnsmasq.d/dhcp',
-      :lease_file => '/tmp/dhcp.leases',
-      :reload_cmd => 'systemctl reload dnsmasq'
+      config: '/etc/dnsmasq.conf',
+      target_dir: '/etc/dnsmasq.d/dhcp',
+      lease_file: '/tmp/dhcp.leases',
+      reload_cmd: 'systemctl reload dnsmasq'
     )
 
     provider = @container.get_dependency(:dhcp_provider)

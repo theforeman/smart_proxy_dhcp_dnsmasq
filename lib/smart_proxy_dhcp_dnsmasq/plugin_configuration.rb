@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ::Proxy::DHCP::Dnsmasq
   class PluginConfiguration
     def load_classes
@@ -7,7 +9,7 @@ module ::Proxy::DHCP::Dnsmasq
     end
 
     def load_dependency_injection_wirings(container, settings)
-      container.singleton_dependency :unused_ips, lambda { ::Proxy::DHCP::FreeIps.new(settings[:blacklist_duration_minutes]) }
+      container.singleton_dependency :unused_ips, -> { ::Proxy::DHCP::FreeIps.new(settings[:blacklist_duration_minutes]) }
 
       container.dependency :memory_store, ::Proxy::MemoryStore
 
@@ -23,7 +25,7 @@ module ::Proxy::DHCP::Dnsmasq
         Proxy::DHCP::Dnsmasq::Provider.new(
           settings[:target_dir],
           settings[:reload_cmd], container.get_dependency(:subnet_service),
-          container.get_dependency(:unused_ips),
+          container.get_dependency(:unused_ips)
         )
       end)
     end

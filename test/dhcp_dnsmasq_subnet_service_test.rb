@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_subnet_service'
 
 class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
   def setup
-    @subnet_service = mock()
+    @subnet_service = mock
     Dir.stubs(:exist?).returns(true)
   end
 
@@ -26,7 +28,7 @@ class DHCPDnsmasqSubnetServiceTest < Test::Unit::TestCase
     initializer.expects(:parse_config_for_subnet).returns(subnet)
     initializer.expects(:parse_config_for_dhcp_reservations).returns([host])
     initializer.expects(:load_leases).returns([lease])
-#    initializer.expects(:add_watch)
+    # initializer.expects(:add_watch)
 
     initializer.load!
   end

@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'rake'
 require 'rake/testtask'
 
 desc 'Default: run unit tests.'
-task :default => :test
+task default: :test
 
 desc 'Test the Foreman Proxy plugin.'
 Rake::TestTask.new(:test) do |t|

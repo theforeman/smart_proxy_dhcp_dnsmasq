@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 require 'smart_proxy_dhcp_dnsmasq/dhcp_dnsmasq_plugin'
 require 'smart_proxy_dhcp_dnsmasq/plugin_configuration'
