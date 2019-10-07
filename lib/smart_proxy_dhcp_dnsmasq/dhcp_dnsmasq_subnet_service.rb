@@ -226,7 +226,7 @@ module Proxy::DHCP::Dnsmasq
           mac = data.first
           data.shift
 
-          options = { :deletable => true }
+          options = { deletable: true }
           while data.first.start_with? 'set:'
             tag = data.first[4..-1]
             data.shift
