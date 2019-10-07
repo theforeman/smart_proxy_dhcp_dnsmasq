@@ -8,7 +8,7 @@ module Proxy::DHCP::Dnsmasq
   class SubnetService < ::Proxy::DHCP::SubnetService
     include Proxy::Log
 
-    OPTSFILE_CLEANUP_INTERVAL = 900 # 15 minutes
+    OPTSFILE_CLEANUP_INTERVAL = 15 * 60 # 15 minutes
 
     attr_accessor :last_cleanup
     attr_reader :config_dir, :lease_file
