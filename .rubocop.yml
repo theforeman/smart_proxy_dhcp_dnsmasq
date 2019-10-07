@@ -8,3 +8,6 @@ Metrics:
 Style/Documentation:
   Enabled: false
 
+# Broken due to ruby version checks in Gemfile
+Bundler/DuplicatedGem:
+  Enabled: false
