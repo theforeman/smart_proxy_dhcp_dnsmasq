@@ -8,7 +8,7 @@ This plugin adds a new DHCP provider for managing records in dnsmasq.
 See [How_to_Install_a_Smart-Proxy_Plugin](http://projects.theforeman.org/projects/foreman/wiki/How_to_Install_a_Smart-Proxy_Plugin)
 for how to install Smart Proxy plugins
 
-This plugin is compatible with Smart Proxy 1.15 or higher.
+This plugin is compatible with Smart Proxy 1.17 or higher.
 
 You need to add two lines to your dnsmasq configuration to use this plugin;
 ```
