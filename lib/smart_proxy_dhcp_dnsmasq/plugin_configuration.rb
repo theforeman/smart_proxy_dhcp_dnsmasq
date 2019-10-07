@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module ::Proxy::DHCP::Dnsmasq
   class PluginConfiguration
     def load_classes

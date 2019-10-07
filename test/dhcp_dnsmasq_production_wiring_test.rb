@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 require 'dhcp_common/dhcp_common'
 require 'dhcp_common/free_ips'
