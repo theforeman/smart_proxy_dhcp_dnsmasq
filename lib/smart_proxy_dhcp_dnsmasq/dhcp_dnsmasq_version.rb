@@ -3,7 +3,7 @@
 module Proxy
   module DHCP
     module Dnsmasq
-      VERSION = '0.7'
+      VERSION = '1.0'
     end
   end
 end
