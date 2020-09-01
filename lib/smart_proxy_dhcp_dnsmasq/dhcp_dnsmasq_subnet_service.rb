@@ -103,12 +103,12 @@ module Proxy::DHCP::Dnsmasq
 
             @lease_file = value
           when 'dhcp-range'
-            data = value.split(',')
+            data = value.split(',').pop(4)
 
-            ttl = data.pop
-            mask = data.pop
-            range_to = data.pop
-            range_from = data.pop
+            range_from = data[0]
+            range_to = data[1]
+            mask = data[2]
+            ttl = data[3] || '1h' # the default from the man page
 
             ttl = case ttl[-1]
                   when 'h'
