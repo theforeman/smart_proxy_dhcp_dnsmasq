@@ -11,7 +11,8 @@ module Proxy::DHCP::Dnsmasq
     default_settings config: '/etc/dnsmasq.conf',
                      target_dir: '/var/lib/foreman-proxy/dhcp/',
                      lease_file: '/var/lib/dnsmasq/dhcp.leases',
-                     reload_cmd: 'systemctl reload dnsmasq'
+                     reload_cmd: 'systemctl reload dnsmasq',
+                     blacklist_duration_minutes: 30
 
     validate_readable :lease_file
 
