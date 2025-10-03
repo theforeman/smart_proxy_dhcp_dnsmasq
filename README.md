@@ -33,6 +33,12 @@ Configuration options for this plugin are in `/etc/foreman-proxy/settings.d/dhcp
 
 For best results, the write config should point to a file in a dnsmasq `conf-dir` which only the smart-proxy uses.
 
+### dnsmasq.conf Notes
+
+Whilst dnsmasq can support a variety of formats of several of the parameters in dnsmasq.conf the plugin currently only supports specific versions of those formats;
+* `dhcp-range`: MUST include the netmask, e.g. &lt;start address&gt;,&lt;end address&gt;,&lt;netmask&gt;,&lt;ttl&gt; (**NOTE:** the plugin only supports a single subnet currently).
+* `dhcp-host`: MUST be in &lt;MAC&gt;,&lt;IP&gt;,&lt;hostname&gt;,&lt;ttl(*optional*)&gt; format, this differs from the example provided in the currently distributed default dnsmasq.conf which has hostname before IP but dnsmasq has no issue with the alternate field ordering (**NOTE:** the plugin does NOT handle the use of DHCP client IDs currently).
+
 ## Contributing
 
 Fork and send a Pull Request. Thanks!
